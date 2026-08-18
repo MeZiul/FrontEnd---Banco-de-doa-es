@@ -43,33 +43,35 @@ export default function ItensDoacao() {
     ]);
 
     return (
-        <div className="p-6">
-            <div className="mb-8 flex items-center gap-3">
-                <span className="text-sm">
-                    Ordenar por:
-                </span>
-
-                <button className="flex items-center gap-2 rounded-md bg-yellow-300 px-3 py-2 text-sm font-medium">
-                    Próximos de mim
-
-                    <span className="text-xs">
-                        ⌄
+        <>
+            <div className="p-6">
+                <div className="mb-8 flex items-center gap-3">
+                    <span className="text-sm">
+                        Ordenar por:
                     </span>
-                </button>
-            </div>
 
-            <div className="grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                {dados.map((d) => (
-                    <MeuCard
-                        key={d.id}
-                        titulo={d.titulo}
-                        imagem={d.imagem}
-                        icone={d.icone}
-                        tipoEntrega={d.tipoEntrega}
-                        endereco={d.endereco}
-                    />
-                ))}
+                    <button className="flex items-center gap-2 rounded-md bg-yellow-300 px-3 py-2 text-sm font-medium">
+                        Próximos de mim
+
+                        <span className="text-xs">
+                            ⌄
+                        </span>
+                    </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                    {dados.map((d) => (
+                        <MeuCard
+                            key={d.id}
+                            titulo={d.titulo}
+                            imagem={d.imagem}
+                            icone={d.icone}
+                            tipoEntrega={d.tipoEntrega}
+                            endereco={d.endereco}
+                        />
+                    ))}
+                </div>
             </div>
-        </div>
+        </>
     );
 }
