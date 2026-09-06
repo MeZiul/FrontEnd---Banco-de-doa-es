@@ -1,0 +1,1 @@
+// (José) Listagem de avaliações dadas/recebidas

@@ -1,3 +1,5 @@
+// (Guilherme) Feed Público (Filtros avançados e listagem).
+
 import Image from "next/image";
 
 export default function Home() {
