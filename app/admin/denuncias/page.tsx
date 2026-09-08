@@ -1,0 +1,1 @@
+// (Luiz) Listagem de denúncias com botões (Acolher/Rejeitar)

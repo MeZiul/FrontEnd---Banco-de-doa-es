@@ -1,0 +1,1 @@
+// (Luiz) Trilha de logs e justificativas de moderação.
