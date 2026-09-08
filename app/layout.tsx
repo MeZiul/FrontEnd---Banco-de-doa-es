@@ -3,8 +3,9 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Search, Home, Package, Bell, Heart } from 'lucide-react';
 import Link from 'next/link';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/app-sidebar';
 
-// Usando a Inter para uma tipografia limpa e geométrica
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
@@ -20,10 +21,10 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={`${inter.className} bg-[#F8FAFC] text-slate-900 min-h-screen flex flex-col`}>
-        
-        {/* TOP HEADER GLOBAL */}
+
+        {/* HEADER */}
         <header className="sticky top-0 z-50 flex h-16 w-full items-center justify-between border-b border-gray-200 bg-white px-4 md:px-8 shadow-sm">
-          
+
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white">
@@ -32,7 +33,7 @@ export default function RootLayout({
             <span className="text-xl font-bold tracking-tight text-blue-600">Doaí</span>
           </Link>
 
-          {/* Barra de Busca Global (Visível apenas em telas médias/grandes) */}
+          {/* Barra de Busca Global */}
           <div className="hidden max-w-2xl flex-1 items-center px-8 md:flex">
             <div className="relative w-full">
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -58,7 +59,7 @@ export default function RootLayout({
                 3
               </span>
             </button>
-            
+
             {/* Avatar do Usuário logado */}
             <Link href="/perfil">
               <div className="ml-2 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white transition-colors hover:bg-blue-700">
@@ -68,10 +69,15 @@ export default function RootLayout({
           </div>
         </header>
 
-        {/* ÁREA DE CONTEÚDO DINÂMICO */}
-        <main className="flex flex-1">
-          {children}
-        </main>
+        {/* ÁREA ABAIXO DO HEADER */}
+        <SidebarProvider className="flex flex-1 w-full">
+          <AppSidebar />
+          <main className="flex flex-1 flex-col">
+            {/* Botão para esconder/mostrar o menu lateral */}
+            <SidebarTrigger className="m-2" />
+            {children}
+          </main>
+        </SidebarProvider>
 
       </body>
     </html>
