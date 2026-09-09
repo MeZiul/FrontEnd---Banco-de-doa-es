@@ -1,1 +1,6 @@
-// (Luiz) Listagem de usuários
+"use client";
+export default adminUsuariosPage(){
+    return (
+        <></>
+    )
+}
