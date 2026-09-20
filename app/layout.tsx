@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
@@ -5,6 +6,7 @@ import { Search, Home, Package, Bell, Heart } from 'lucide-react';
 import Link from 'next/link';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
+import UserDropdown from '@/components/shared/UserDropdown';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -60,16 +62,13 @@ export default function RootLayout({
               </span>
             </button>
 
-            {/* Avatar do Usuário logado */}
-            <Link href="/perfil">
-              <div className="ml-2 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white transition-colors hover:bg-blue-700">
-                CN
-              </div>
-            </Link>
+            {}
+            <UserDropdown />
+            
           </div>
         </header>
 
-        {/* ÁREA ABAIXO DO HEADER */}
+        {/* CONTEÚDO PRINCIPAL */}
         <SidebarProvider className="flex flex-1 w-full">
           <AppSidebar />
           <main className="flex flex-1 flex-col">
