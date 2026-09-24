@@ -1,21 +1,48 @@
 import { cn } from "cn"
 
 import { Button } from "@/components/ui/button"
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-  FieldSeparator,
-} from "@/components/ui/field"
+import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSeparator, } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { signIn } from "@/lib/auth-client"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"form">) {
+
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("");
+  const [erro, setErro] = useState<string | null>(null)
+
+  const router = useRouter();
+
+  async function login(e: React.FormEvent) {
+    e.preventDefault()
+
+    console.log('efetuando login...')
+    setErro(null)
+
+    const { error } = await signIn.email({ email, password })
+
+    if (error) {
+      console.log('efetuando login...')
+      setErro("Email ou senha inválidos")
+      return
+    }
+
+    router.replace("/itensDoacao")
+  }
+
+
   return (
-    <form className={cn("flex flex-col gap-6", className)} {...props}>
+    <form className={cn("flex flex-col gap-6", className)} {...props}
+      onSubmit={login}
+    >
+      {erro && (
+        <div className="text-red-500 text-sm">{erro}</div>
+      )}
       <FieldGroup>
 
         {/* Título */}
@@ -29,14 +56,20 @@ export function LoginForm({
         <Field>
           <FieldLabel htmlFor="email">E-mail</FieldLabel>
 
-          <Input id="email" type="email" placeholder="seu@email.com" required />
+          <Input id="email" type="email" placeholder="seu@email.com" required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
         </Field>
 
         {/* Senha */}
         <Field>
           <FieldLabel htmlFor="password">Senha</FieldLabel>
 
-          <Input id="password" type="password" required />
+          <Input id="password" type="password" required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
 
           {/* Lembrar / Esqueci a senha */}
           <div className="flex items-center justify-between">
@@ -67,6 +100,7 @@ export function LoginForm({
           </Button>
         </Field>
 
+        <FieldSeparator> Ou continuar com </FieldSeparator>
         {/* Google */}
         <Field>
           <Button variant="outline" type="button" className="w-full cursor-pointer"
