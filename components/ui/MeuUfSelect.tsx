@@ -16,7 +16,7 @@ interface UfSelectProps {
 export function UfSelect({
     value,
     onValueChange,
-    placeholder = "SELECIONE",
+    placeholder = " ",
 }: UfSelectProps) {
     return (
         <Select

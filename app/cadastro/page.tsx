@@ -10,7 +10,7 @@ export default function CadastroPage() {
       <EsquedaAutenticacao pagina="cadastro" />
 
       <div className="flex min-h-screen items-center justify-center bg-[#F4F7FC] p-6 md:p-10">
-        <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-sm">
+        <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-sm">
           <SignupForm />
         </div>
       </div>

@@ -4,13 +4,77 @@ import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { UfSelect } from "./ui/MeuUfSelect"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { signUp } from "@/lib/auth-client"
 
 export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"form">) {
+
+  const [dados, setDados] = useState({
+    nome: "",
+    email: "",
+    cpf: "",
+    telefone: "",
+    cidade: "",
+    uf: "",
+    senha: "",
+    confirmarSenha: "",
+    termos: false,
+  })
+
+  const [erro, setErro] = useState<string | null>(null)
+
+  const router = useRouter();
+
+  function atualizarCampo(campo: string, valor: string | boolean) {
+    setDados({
+      ...dados,
+      [campo]: valor,
+    })
+  }
+
+
+  async function cadastrar(e: React.FormEvent) {
+    e.preventDefault()
+
+    setErro(null)
+
+    if (dados.senha !== dados.confirmarSenha) {
+      setErro("As senhas não coincidem")
+      return
+    }
+
+    if (!dados.termos) {
+      setErro("Você precisa aceitar os termos de uso e a política de privacidade")
+      return
+    }
+
+    const { error } = await signUp.email({
+      email: dados.email,
+      password: dados.senha,
+      name: dados.nome,
+    })
+
+    if (error) {
+      setErro(error.message ?? "Não foi possível criar a conta")
+      return
+    }
+
+    console.log("Conta criada com sucesso!")
+
+    router.replace("/perfil/editar")
+  }
+
   return (
-    <form className={cn("flex flex-col gap-6", className)} {...props}>
+    <form className={cn("flex flex-col gap-6", className)} {...props}
+      onSubmit={cadastrar}
+    >
+      {erro && (
+        <div className="text-red-500 text-sm">{erro}</div>
+      )}
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
           <h1 className="text-2xl font-bold">Criar sua conta</h1>
@@ -26,6 +90,8 @@ export function SignupForm({
             placeholder="Maria da Silva"
             required
             className="bg-background"
+            value={dados.nome}
+            onChange={(e) => atualizarCampo("nome", e.target.value)}
           />
         </Field>
         <Field>
@@ -36,6 +102,8 @@ export function SignupForm({
             placeholder="seu@email.com"
             required
             className="bg-background"
+            value={dados.email}
+            onChange={(e) => atualizarCampo("email", e.target.value)}
           />
         </Field>
         <div className="flex gap-3">
@@ -47,6 +115,8 @@ export function SignupForm({
               placeholder="000.000.000-00"
               required
               className="bg-background"
+              value={dados.cpf}
+              onChange={(e) => atualizarCampo("cpf", e.target.value)}
             />
           </Field>
 
@@ -58,6 +128,8 @@ export function SignupForm({
               placeholder="(00) 00000-0000"
               required
               className="bg-background"
+              value={dados.telefone}
+              onChange={(e) => atualizarCampo("telefone", e.target.value)}
             />
           </Field>
         </div>
@@ -70,12 +142,16 @@ export function SignupForm({
               placeholder="Vilhena"
               required
               className="bg-background"
+              value={dados.cidade}
+              onChange={(e) => atualizarCampo("cidade", e.target.value)}
             />
           </Field>
 
           <Field className="w-20">
             <FieldLabel htmlFor="estado">UF</FieldLabel>
-            <UfSelect />
+            <UfSelect
+              value={dados.uf}
+              onValueChange={(valor) => atualizarCampo("uf", valor)} />
           </Field>
         </div>
         <Field>
@@ -85,6 +161,8 @@ export function SignupForm({
             type="password"
             required
             className="bg-background"
+            value={dados.senha}
+            onChange={(e) => atualizarCampo("senha", e.target.value)}
           />
           <FieldDescription>
             Minimo de 8 caracteres.
@@ -97,15 +175,32 @@ export function SignupForm({
             type="password"
             required
             className="bg-background"
+            value={dados.confirmarSenha}
+            onChange={(e) => atualizarCampo("confirmarSenha", e.target.value)}
           />
           <FieldDescription>Por favor, confirme sua senha.</FieldDescription>
         </Field>
+        <label
+          htmlFor="termos"
+          className="flex items-top gap-2 text-sm text-muted-foreground cursor-pointer"
+        >
+          <input
+            id="termos"
+            type="checkbox"
+            className="h-4 w-4 cursor-pointer accent-[#2973ba]"
+            checked={dados.termos}
+            onChange={(e) => atualizarCampo("termos", e.target.checked)}
+          />
+
+          Li e aceito os termos de uso e a política de privacidade do Doaí
+        </label>
         <Field>
           <Button type="submit">Criar Conta</Button>
         </Field>
         <FieldSeparator>Ou continuar com</FieldSeparator>
         <Field>
           <Button variant="outline" type="button" className="w-full cursor-pointer"
+            onClick={() => setErro("Não implemendado ainda")}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -133,7 +228,13 @@ export function SignupForm({
             Entrar com Google
           </Button>
           <FieldDescription className="px-6 text-center">
-            Já tem uma conta? <a href="#">Entrar</a>
+            Já tem uma conta?{" "}
+            <a href="#"
+              className="text-[#2973ba] font-bold underline underline-offset-4 hover:text-[#1e5bb4]"
+              onClick={() => router.replace("/login")}
+            >
+              Entrar
+            </a>
           </FieldDescription>
         </Field>
       </FieldGroup>
