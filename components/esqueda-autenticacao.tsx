@@ -12,7 +12,7 @@ export default function EsquedaAutenticacao({
 
 
     return (
-        <div className="hidden lg:flex flex-col justify-between p-12 bg-[#1e5bb4] text-white">
+        <div className="hidden lg:flex flex-col justify-between p-12 bg-[#2973ba] text-white">
             {/* Topo: Logotipo */}
             <div className="flex items-start">
                 <DoaiIconCustom />
