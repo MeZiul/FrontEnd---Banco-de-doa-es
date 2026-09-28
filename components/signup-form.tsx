@@ -56,6 +56,10 @@ export function SignupForm({
       email: dados.email,
       password: dados.senha,
       name: dados.nome,
+      cpf: dados.cpf,
+      telefone: dados.telefone,
+      cidade: dados.cidade,
+      uf: dados.uf,
     })
 
     if (error) {
