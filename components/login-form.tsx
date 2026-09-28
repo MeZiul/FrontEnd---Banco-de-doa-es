@@ -84,6 +84,7 @@ export function LoginForm({
 
             <a href="#"
               className="text-sm text-[#2973ba] hover:underline"
+              onClick={() => setErro("Não implementado ainda")}
             >
               Esqueceu sua senha?
             </a>
@@ -104,6 +105,7 @@ export function LoginForm({
         {/* Google */}
         <Field>
           <Button variant="outline" type="button" className="w-full cursor-pointer"
+            onClick={() => setErro("Não implementado ainda")}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -136,6 +138,7 @@ export function LoginForm({
             Não tem uma conta?{" "}
             <a href="#"
               className="text-[#2973ba] font-bold underline underline-offset-4 hover:text-[#1e5bb4]"
+              onClick={() => router.replace("/cadastro")}
             >
               Cadastre-se
             </a>

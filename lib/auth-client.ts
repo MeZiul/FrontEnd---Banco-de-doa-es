@@ -5,11 +5,11 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 export const authClient = createAuthClient({
     baseURL: API_URL,
-    basePath:"/auth",
+    basePath:"/api/auth",
     fetchOptions:{
         credentials:"include"
     },
     plugins:[adminClient()]
 })
 
-export const {signIn, signOut, useSession} = authClient
+export const {signIn, signUp, signOut, useSession} = authClient
