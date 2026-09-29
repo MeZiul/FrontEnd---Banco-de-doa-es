@@ -5,7 +5,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 export const authClient = createAuthClient({
     baseURL: API_URL,
-    basePath: "/api/auth",
+    basePath: "/auth/login",
     fetchOptions: {
         credentials: "include"
     },

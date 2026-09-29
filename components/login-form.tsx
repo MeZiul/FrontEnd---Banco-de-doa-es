@@ -24,10 +24,22 @@ export function LoginForm({
     console.log('efetuando login...')
     setErro(null)
 
-    const { error } = await signIn.email({ email, password })
+    const resposta = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          email,
+          senha: password,
+        }),
+      }
+    )
 
-    if (error) {
-      console.log('efetuando login...')
+    if (!resposta.ok) {
       setErro("Email ou senha inválidos")
       return
     }
