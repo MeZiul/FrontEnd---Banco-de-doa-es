@@ -26,6 +26,7 @@ export function SignupForm({
   })
 
   const [erro, setErro] = useState<string | null>(null)
+  const [carregando, setCarregando] = useState(false)
 
   const router = useRouter();
 
@@ -46,31 +47,52 @@ export function SignupForm({
       setErro("As senhas não coincidem")
       return
     }
-
+    if (dados.senha.length < 8) {
+      setErro("A senha deve possuir no mínimo 8 caracteres")
+      return
+    }
     if (!dados.termos) {
       setErro("Você precisa aceitar os termos de uso e a política de privacidade")
       return
     }
+    try {
+      setCarregando(true)
+      const resposta = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/auth/register`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", },
+          credentials: "include",
+          body: JSON.stringify({
+            nome: dados.nome,
+            email: dados.email,
+            cpf: dados.cpf,
+            telefone: dados.telefone,
+            cidade: dados.cidade,
+            uf: dados.uf,
+            senha: dados.senha,
+          }),
+        }
+      )
+      const resultado = await resposta.json()
+      if (!resposta.ok) {
+        setErro(resultado.message || resultado.error || "Não foi possível criar a conta")
+        return
+      }
+      console.log("Conta criada com sucesso!")
 
-    const { error } = await signUp.email({
-      email: dados.email,
-      password: dados.senha,
-      name: dados.nome,
-      cpf: dados.cpf,
-      telefone: dados.telefone,
-      cidade: dados.cidade,
-      uf: dados.uf,
-    })
-
-    if (error) {
-      setErro(error.message ?? "Não foi possível criar a conta")
-      return
+      router.replace("/login")
     }
-
-    console.log("Conta criada com sucesso!")
-
-    router.replace("/perfil/editar")
+    catch (error) {
+      console.error("Erro ao cadastrar:", error)
+      setErro("Não foi possível conectar ao servidor")
+    }
+    finally {
+      setCarregando(false)
+    }
   }
+
+
 
   return (
     <form className={cn("flex flex-col gap-6", className)} {...props}
@@ -199,7 +221,13 @@ export function SignupForm({
           Li e aceito os termos de uso e a política de privacidade do Doaí
         </label>
         <Field>
-          <Button type="submit">Criar Conta</Button>
+          <Button 
+          type="submit"
+          disabled={carregando}
+          className="w-full"
+          >
+            Criar Conta
+            </Button>
         </Field>
         <FieldSeparator>Ou continuar com</FieldSeparator>
         <Field>
