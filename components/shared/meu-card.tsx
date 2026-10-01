@@ -1,4 +1,3 @@
-//components/ui/MeuCard.tsx
 import Image from "next/image";
 import { LucideIcon } from "lucide-react";
 

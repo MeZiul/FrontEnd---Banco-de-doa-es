@@ -1,14 +1,10 @@
-import { DoaiIconCustom } from "./ui/doai-icon";
+"use client"
 
-interface EsquedaAutenticacaoProps {
-    pagina: "login" | "cadastro";
-}
+import { usePathname } from "next/navigation";
+import { DoaiIconCustom } from "@/components/shared/doai-icon";
 
-export default function EsquedaAutenticacao({
-    pagina,
-}: EsquedaAutenticacaoProps) {
-
-    const isLogin = pagina === "login";
+export default function EsquerdaAutenticacao() {
+    const isLogin = usePathname() === "/login";
 
 
     return (
@@ -21,7 +17,7 @@ export default function EsquedaAutenticacao({
             {/* Centro: Ilustração da Caixa de Doação */}
             <div className="flex flex-1 items-center justify-center">
                 <img
-                    src="caixa-doacao.png"
+                    src="/images/caixa-doacao.png"
                     alt="Ilustração da Caixa de Doação"
                 />
             </div>
