@@ -1,7 +1,7 @@
 "use client";
 
-import EsquedaAutenticacao from "@/components/esqueda-autenticacao";
-import { LoginForm } from "@/components/login-form";
+import EsquedaAutenticacao from "@/components/auth/esqueda-autenticacao";
+import { LoginForm } from "@/components/auth/login-form";
 
 export default function LoginPage() {
   return (

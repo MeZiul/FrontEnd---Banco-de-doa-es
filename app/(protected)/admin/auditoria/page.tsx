@@ -1,6 +1,6 @@
 "use client";
 
-import AuditoriaCard from "@/components/AdminAuditoriaCard";
+import AuditoriaCard from "@/components/admin/admin-auditoria-card";
 import { Card, CardDescription, CardHeader, CardTitle, } from "@/components/ui/card";
 import { ShieldCheck } from "lucide-react";
 import { useState } from "react";

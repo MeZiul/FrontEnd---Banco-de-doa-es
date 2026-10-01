@@ -1,7 +1,7 @@
 "use client"
 
-import EsquedaAutenticacao from "@/components/esqueda-autenticacao"
-import { SignupForm } from "@/components/signup-form"
+import EsquedaAutenticacao from "@/components/auth/esqueda-autenticacao"
+import { SignupForm } from "@/components/auth/signup-form"
 
 export default function CadastroPage() {
   return (

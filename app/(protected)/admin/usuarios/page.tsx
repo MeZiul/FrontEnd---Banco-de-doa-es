@@ -1,7 +1,7 @@
 "use client"
 
-import UsuarioCard from "@/components/AdminUsuarioCard";
-import { AdminCardHeader } from "@/components/ui/AdminCardHeader";
+import UsuarioCard from "@/components/admin/admin-usuario-card";
+import { AdminCardHeader } from "@/components/admin/admin-card-header";
 import { useState } from "react";
 
 interface AdminUsuarios {

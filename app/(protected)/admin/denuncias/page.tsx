@@ -1,7 +1,7 @@
 "use client";
 
-import AdminDenunciaCard from "@/components/AdminDenunciaCard";
-import { AdminCardHeader } from "@/components/ui/AdminCardHeader";
+import AdminDenunciaCard from "@/components/admin/admin-denuncia-card";
+import { AdminCardHeader } from "@/components/admin/admin-card-header";
 import { useState } from "react";
 
 interface AdminDenuncias {

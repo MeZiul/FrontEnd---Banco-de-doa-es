@@ -1,9 +1,8 @@
-// app/itensDoacao/page.tsx
-"use client";
+"use client"
 
 import { useState } from "react";
 import { DoorOpen, Truck, LucideIcon } from "lucide-react";
-import MeuCard from "@/components/ui/MeuCard";
+import MeuCard from "@/components/shared/meu-card";
 
 interface ItemDoacao {
     id: number;
