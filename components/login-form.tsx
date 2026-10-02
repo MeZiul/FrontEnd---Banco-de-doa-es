@@ -53,7 +53,7 @@ export function LoginForm({
       onSubmit={login}
     >
       {erro && (
-        <div className="text-sm text-red-500">
+        <div data-test="mensagemErroLogin" className="text-sm text-red-500">
           {erro}
         </div>
       )}
@@ -73,7 +73,7 @@ export function LoginForm({
             E-mail
           </FieldLabel>
 
-          <Input
+          <Input data-test="credencialLogin"
             id="email"
             type="email"
             placeholder="seu@email.com"
@@ -89,7 +89,7 @@ export function LoginForm({
             Senha
           </FieldLabel>
 
-          <Input
+          <Input data-test="senhaLogin"
             id="password"
             type="password"
             required
@@ -104,7 +104,7 @@ export function LoginForm({
               htmlFor="remember"
               className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground"
             >
-              <input
+              <input data-test="lembrarLogin"
                 id="remember"
                 type="checkbox"
                 className="h-4 w-4 cursor-pointer accent-[#2973ba]"
@@ -114,7 +114,7 @@ export function LoginForm({
               Lembrar de mim
             </label>
 
-            <a
+            <a data-test="esqueceuSenhaLogin"
               href="#"
               className="text-sm text-[#2973ba] hover:underline"
               onClick={(e) => {
@@ -129,7 +129,7 @@ export function LoginForm({
         </Field>
 
         <Field>
-          <Button
+          <Button data-test="buttonEntrar"
             type="submit"
             disabled={carregando}
             className="w-full cursor-pointer bg-[#2973ba] text-white hover:bg-[#1e5bb4]"
@@ -143,7 +143,7 @@ export function LoginForm({
         </FieldSeparator>
 
         <Field>
-          <Button
+          <Button data-test="buttonGoogle"
             variant="outline"
             type="button"
             className="w-full cursor-pointer"
@@ -181,7 +181,7 @@ export function LoginForm({
 
           <FieldDescription className="text-center">
             Não tem uma conta?{" "}
-            <a
+            <a data-test="buttonCadastrar"
               href="#"
               className="font-bold text-[#2973ba] underline underline-offset-4 hover:text-[#1e5bb4]"
               onClick={(e) => {
