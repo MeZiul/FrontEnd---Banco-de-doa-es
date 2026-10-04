@@ -138,7 +138,7 @@ export default function AuditoriaCard({
                         <p className="text-sm text-muted-foreground">
                             {new Date(
                                 auditoria.suspensao_ate
-                            ).toLocaleString("pt-BR")}
+                            ).toLocaleString("pt-br")}
                         </p>
                     </div>
                 )}
