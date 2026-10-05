@@ -1,10 +1,4 @@
-type ApiError = string | { message?: string; path?: string };
-
-type ApiResponse<T> = {
-  message?: string;
-  data: T;
-  errors?: ApiError[];
-};
+import type { ApiResposta } from "@/types/api";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -25,11 +19,13 @@ type OpcoesFetch = {
   params?: Record<string, string | number | boolean | undefined>;
   body?: unknown;
   signal?: AbortSignal;
+  // Token Bearer da sessão (ver lib/auth-server.ts)
+  token?: string;
 };
 
 export async function fetchApi<T>(
   caminho: string,
-  { metodo = "GET", params, body, signal }: OpcoesFetch = {},
+  { metodo = "GET", params, body, signal, token }: OpcoesFetch = {},
 ): Promise<T> {
   if (!API_URL) {
     throw new Error("Defina NEXT_PUBLIC_API_URL no arquivo .env.local.");
@@ -43,13 +39,16 @@ export async function fetchApi<T>(
   const resposta = await fetch(url, {
     method: metodo,
     signal,
-    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    headers: {
+      ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 
   if (resposta.status === 204) return undefined as T;
 
-  const json = (await resposta.json()) as ApiResponse<T>;
+  const json = (await resposta.json()) as ApiResposta<T>;
 
   if (!resposta.ok) {
     const motivo =

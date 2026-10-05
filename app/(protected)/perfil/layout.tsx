@@ -1,13 +1,14 @@
+import { getUsuarioLogado } from "@/lib/auth-server";
 
+export default async function PerfilLayout({ children }: LayoutProps<"/perfil">) {
+    const usuario = await getUsuarioLogado();
 
-import Link from "next/link";
-import { Package, Inbox, Star, FileText, LogOut, Edit3 } from "lucide-react";
-
-export default function PerfilLayout({ children }: { children: React.ReactNode }) {
     return (
-        <div className="flex w-full max-w-7xl mx-auto py-8 px-4 md:px-8 gap-8">
-            {/* Área Principal (Os cards de Meus Anúncios vão renderizar aqui dentro) */}
-            <div className="flex-1">
+        <div className="flex w-full max-w-7xl mx-auto flex-col gap-8 py-8 px-4 md:flex-row md:px-8">
+           
+
+            {/* Área Principal */}
+            <div className="min-w-0 flex-1">
             {children}
             </div>
         </div>
