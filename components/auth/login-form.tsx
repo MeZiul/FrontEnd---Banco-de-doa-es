@@ -37,7 +37,11 @@ export function LoginForm({
         return
       }
 
-      router.replace("/itensDoacao")
+      // Volta para a página que o proxy.ts bloqueou (só aceita caminhos internos)
+      const redirect = new URLSearchParams(window.location.search).get("redirect")
+      const destinoSeguro = redirect && redirect.startsWith("/") && !redirect.startsWith("//")
+
+      router.replace(destinoSeguro ? redirect : "/itens-doacao")
     } catch (error) {
       console.error("Erro ao realizar login:", error)
       setErro("Não foi possível realizar o login. Tente novamente.")
