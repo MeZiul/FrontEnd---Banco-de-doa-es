@@ -1,3 +1,4 @@
+
 import { Search, Home, Package, Bell, Heart } from 'lucide-react';
 import Link from 'next/link';
 import UserDropdown from '@/components/layout/user-dropdown';
