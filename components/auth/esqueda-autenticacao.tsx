@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { DoaiIconCustom } from "@/components/shared/doai-icon";
+import Image from "next/image";
 
 export default function EsquerdaAutenticacao() {
     const isLogin = usePathname() === "/login";
@@ -16,9 +17,14 @@ export default function EsquerdaAutenticacao() {
 
             {/* Centro: Ilustração da Caixa de Doação */}
             <div className="flex flex-1 items-center justify-center">
-                <img
+                <Image
                     src="/images/caixa-doacao.png"
                     alt="Ilustração da Caixa de Doação"
+                    width={640}
+                    height={640}
+                    sizes="320px"
+                    priority
+                    className="aspect-square w-full max-w-xs rounded-2xl object-cover"
                 />
             </div>
 

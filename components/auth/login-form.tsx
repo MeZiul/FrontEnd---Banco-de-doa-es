@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { signIn } from "@/lib/auth-client"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 export function LoginForm({
   className,
@@ -185,16 +186,12 @@ export function LoginForm({
 
           <FieldDescription className="text-center">
             Não tem uma conta?{" "}
-            <a data-test="buttonCadastrar"
-              href="#"
+            <Link data-test="buttonCadastrar"
+              href="/cadastro"
               className="font-bold text-[#2973ba] underline underline-offset-4 hover:text-[#1e5bb4]"
-              onClick={(e) => {
-                e.preventDefault()
-                router.replace("/cadastro")
-              }}
             >
               Cadastre-se
-            </a>
+            </Link>
           </FieldDescription>
         </Field>
 

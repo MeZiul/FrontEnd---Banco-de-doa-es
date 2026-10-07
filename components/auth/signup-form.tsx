@@ -9,6 +9,7 @@ import { UfSelect } from "@/components/shared/uf-select"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { signUp } from "@/lib/auth-client"
+import Link from "next/link"
 
 export function SignupForm({
   className,
@@ -235,12 +236,12 @@ export function SignupForm({
           </Button>
           <FieldDescription className="px-6 text-center">
             Já tem uma conta?{" "}
-            <a href="#"
+            <Link data-test="buttonFazerLogin"
+              href="/login"
               className="text-[#2973ba] font-bold underline underline-offset-4 hover:text-[#1e5bb4]"
-              onClick={() => router.replace("/login")}
             >
               Entrar
-            </a>
+            </Link>
           </FieldDescription>
         </Field>
       </FieldGroup>
