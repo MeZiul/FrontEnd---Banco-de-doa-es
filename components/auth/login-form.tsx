@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { signIn } from "@/lib/auth-client"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 export function LoginForm({
   className,
@@ -37,7 +38,11 @@ export function LoginForm({
         return
       }
 
-      router.replace("/itensDoacao")
+      // Volta para a página que o proxy.ts bloqueou (só aceita caminhos internos)
+      const redirect = new URLSearchParams(window.location.search).get("redirect")
+      const destinoSeguro = redirect && redirect.startsWith("/") && !redirect.startsWith("//")
+
+      router.replace(destinoSeguro ? redirect : "/itens-doacao")
     } catch (error) {
       console.error("Erro ao realizar login:", error)
       setErro("Não foi possível realizar o login. Tente novamente.")
@@ -181,16 +186,12 @@ export function LoginForm({
 
           <FieldDescription className="text-center">
             Não tem uma conta?{" "}
-            <a data-test="buttonCadastrar"
-              href="#"
+            <Link data-test="buttonCadastrar"
+              href="/cadastro"
               className="font-bold text-[#2973ba] underline underline-offset-4 hover:text-[#1e5bb4]"
-              onClick={(e) => {
-                e.preventDefault()
-                router.replace("/cadastro")
-              }}
             >
               Cadastre-se
-            </a>
+            </Link>
           </FieldDescription>
         </Field>
 

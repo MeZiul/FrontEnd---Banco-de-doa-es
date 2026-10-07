@@ -1,7 +1,5 @@
 import { Search, Home, Package, Bell, Heart } from 'lucide-react';
 import Link from 'next/link';
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { AppSidebar } from '@/components/layout/app-sidebar';
 import UserDropdown from '@/components/layout/user-dropdown';
 
 export default function ProtectedLayout({ children }: LayoutProps<"/">) {
@@ -33,7 +31,7 @@ export default function ProtectedLayout({ children }: LayoutProps<"/">) {
 
         {/* Ações do Usuário e Notificações */}
         <div className="flex items-center gap-4 md:gap-6 text-gray-500">
-          <Link href="/" className="hover:text-blue-600 transition-colors" aria-label="Início">
+          <Link href="/itens-doacao" className="hover:text-blue-600 transition-colors" aria-label="Início">
             <Home className="h-[22px] w-[22px]" />
           </Link>
           <Link href="/perfil/meus-anuncios" className="hover:text-blue-600 transition-colors" aria-label="Meus Anúncios">
@@ -51,14 +49,7 @@ export default function ProtectedLayout({ children }: LayoutProps<"/">) {
       </header>
 
       {/* CONTEÚDO PRINCIPAL */}
-      <SidebarProvider className="flex flex-1 w-full">
-        <AppSidebar />
-        <main className="flex flex-1 flex-col">
-          {/* Botão para esconder/mostrar o menu lateral */}
-          <SidebarTrigger className="m-2" />
-          {children}
-        </main>
-      </SidebarProvider>
+      <div className="flex flex-1 w-full">{children}</div>
 
     </div>
   );

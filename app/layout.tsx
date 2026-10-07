@@ -18,8 +18,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-br">
-      <body className={`${inter.variable} min-h-full flex flex-col antialiased`}>
+    // A variável da fonte fica no <html> porque o globals.css aplica font-sans no <html>
+    <html lang="pt-br" className={`${inter.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col">
         {children}
       </body>
     </html>

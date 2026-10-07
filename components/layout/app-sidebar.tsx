@@ -52,8 +52,8 @@ const categories = [
 ]
 
 const nav = [
-  { href: "/", label: "Explorar tudo", icon: Compass },
-  { href: "/conta", label: "Sua conta", icon: UserRound },
+  { href: "/itens-doacao", label: "Explorar tudo", icon: Compass },
+  { href: "/perfil", label: "Sua conta", icon: UserRound },
 ]
 
 export function AppSidebar() {
