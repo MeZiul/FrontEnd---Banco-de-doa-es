@@ -4,51 +4,37 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { signIn } from "@/lib/auth-client"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { entrar } from "@/app/(auth)/actions"
+import { useState, useTransition } from "react"
+import { unstable_rethrow } from "next/navigation"
 import Link from "next/link"
 
 export function LoginForm({
   className,
+  destino,
+  cadastroConcluido = false,
   ...props
-}: React.ComponentProps<"form">) {
+}: React.ComponentProps<"form"> & { destino?: string; cadastroConcluido?: boolean }) {
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [erro, setErro] = useState<string | null>(null)
-  const [carregando, setCarregando] = useState(false)
+  const [carregando, iniciarLogin] = useTransition()
+  const [lembrar, setLembrar] = useState(false)
 
-  const router = useRouter()
-
-  async function login(e: React.FormEvent) {
+  function login(e: React.FormEvent) {
     e.preventDefault()
 
     setErro(null)
-    setCarregando(true)
-
-    try {
-      const { error } = await signIn.email({
-        email,
-        password,
-      })
-
-      if (error) {
-        setErro("E-mail ou senha inválidos")
-        return
+    iniciarLogin(async () => {
+      try {
+        const resultado = await entrar({ email, senha: password, lembrar }, destino)
+        setErro(resultado.erro)
+      } catch (erro) {
+        unstable_rethrow(erro)
+        setErro("Não foi possível realizar o login. Tente novamente.")
       }
-
-      // Volta para a página que o proxy.ts bloqueou (só aceita caminhos internos)
-      const redirect = new URLSearchParams(window.location.search).get("redirect")
-      const destinoSeguro = redirect && redirect.startsWith("/") && !redirect.startsWith("//")
-
-      router.replace(destinoSeguro ? redirect : "/itens-doacao")
-    } catch (error) {
-      console.error("Erro ao realizar login:", error)
-      setErro("Não foi possível realizar o login. Tente novamente.")
-    } finally {
-      setCarregando(false)
-    }
+    })
   }
 
   return (
@@ -56,9 +42,13 @@ export function LoginForm({
       className={cn("flex flex-col gap-6", className)}
       {...props}
       onSubmit={login}
+      aria-busy={carregando}
     >
+      {cadastroConcluido && (
+        <p role="status" className="text-sm text-green-700">Conta criada com sucesso. Entre com seu e-mail e senha.</p>
+      )}
       {erro && (
-        <div data-test="mensagemErroLogin" className="text-sm text-red-500">
+        <div role="alert" data-test="mensagemErroLogin" className="text-sm text-red-500">
           {erro}
         </div>
       )}
@@ -114,6 +104,8 @@ export function LoginForm({
                 type="checkbox"
                 className="h-4 w-4 cursor-pointer accent-[#2973ba]"
                 disabled={carregando}
+                checked={lembrar}
+                onChange={(e) => setLembrar(e.target.checked)}
               />
 
               Lembrar de mim

@@ -1,7 +1,8 @@
 import EsquerdaAutenticacao from "@/components/auth/esqueda-autenticacao";
 import { LoginForm } from "@/components/auth/login-form";
 
-export default function LoginPage() {
+export default async function LoginPage({ searchParams }: PageProps<"/login">) {
+  const params = await searchParams;
   return (
     <div data-test="paginaLogin" className="grid min-h-svh lg:grid-cols-2">
 
@@ -9,7 +10,7 @@ export default function LoginPage() {
       
           <div className="flex min-h-screen items-center justify-center bg-[#F4F7FC] p-6 md:p-10">
             <div data-test="cardLogin" className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-sm" >
-              <LoginForm />
+              <LoginForm destino={typeof params.redirect === "string" ? params.redirect : undefined} cadastroConcluido={params.cadastro === "sucesso"} />
             </div>
           </div>    
     </div>
