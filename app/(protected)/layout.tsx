@@ -50,7 +50,7 @@ export default function ProtectedLayout({ children }: LayoutProps<"/">) {
       </header>
 
       {/* CONTEÚDO PRINCIPAL */}
-      <div className="flex flex-1 w-full">{children}</div>
+      <div className="bg-[#F8FAFC] text-slate-900 min-h-screen min-w-0 flex flex-1 flex-col">{children}</div>
 
     </div>
   );
