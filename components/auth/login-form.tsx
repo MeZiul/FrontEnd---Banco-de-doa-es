@@ -111,16 +111,12 @@ export function LoginForm({
               Lembrar de mim
             </label>
 
-            <a data-test="esqueceuSenhaLogin"
-              href="#"
+            <Link data-test="esqueceuSenhaLogin"
+              href="/esqueci-senha"
               className="text-sm text-[#2973ba] hover:underline"
-              onClick={(e) => {
-                e.preventDefault()
-                setErro("Recuperação de senha ainda não implementada")
-              }}
             >
               Esqueceu sua senha?
-            </a>
+            </Link>
 
           </div>
         </Field>
