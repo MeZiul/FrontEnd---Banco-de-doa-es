@@ -1,3 +1,5 @@
+import { criarContaSintetica } from "../support/conta-sintetica";
+
 describe("Cadastro", () => {
   beforeEach(() => {
     cy.visit("/cadastro");
@@ -11,9 +13,10 @@ describe("Cadastro", () => {
   });
 
   it("cria uma conta nova", () => {
-    cy.get('[data-test="nomeCadastro"]').type("Maria da Silva");
-    cy.get('[data-test="emailCadastro"]').type("maria.cypress@email.com");
-    cy.get('[data-test="cpfCadastro"]').type("123.456.789-09");
+    const conta = criarContaSintetica();
+    cy.get('[data-test="nomeCadastro"]').type(conta.nome);
+    cy.get('[data-test="emailCadastro"]').type(conta.email);
+    cy.get('[data-test="cpfCadastro"]').type(conta.cpf);
     cy.get('[data-test="telefoneCadastro"]').type("(69) 99999-0000");
     cy.get('[data-test="cidadeCadastro"]').type("Vilhena");
 
@@ -21,11 +24,14 @@ describe("Cadastro", () => {
     cy.get('[data-test="ufCadastro"]').click();
     cy.get('[data-test="opcaoUfRO"]').click();
 
-    cy.get('[data-test="senhaCadastro"]').type("Senha@123");
-    cy.get('[data-test="confirmarSenhaCadastro"]').type("Senha@123");
+    cy.get('[data-test="senhaCadastro"]').type(conta.senha, { log: false });
+    cy.get('[data-test="confirmarSenhaCadastro"]').type(conta.senha, { log: false });
     cy.get('[data-test="termosCadastro"]').check();
     cy.get('[data-test="buttonCriarConta"]').click();
 
-    cy.url().should("include", "/perfil/editar");
+    cy.location("pathname").should("eq", "/login");
+    cy.location("search").should("eq", "?cadastro=sucesso");
+    cy.contains('[role="status"]', "Conta criada com sucesso. Entre com seu e-mail e senha.").should("be.visible");
+    cy.getCookie("doai_token").should("be.null");
   });
 });

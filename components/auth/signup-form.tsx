@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { UfSelect } from "@/components/shared/uf-select"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useTransition } from "react"
+import { cadastrar as cadastrarConta } from "@/app/(auth)/actions"
+import { unstable_rethrow } from "next/navigation"
 import Link from "next/link"
-import { signUp } from "@/lib/auth-client"
 
 export function SignupForm({
   className,
@@ -30,7 +30,7 @@ export function SignupForm({
 
   const [erro, setErro] = useState<string | null>(null)
 
-  const router = useRouter();
+  const [carregando, iniciarCadastro] = useTransition()
 
   function atualizarCampo(campo: string, valor: string | boolean) {
     setDados({
@@ -40,39 +40,20 @@ export function SignupForm({
   }
 
 
-  async function cadastrar(e: React.FormEvent) {
+  function cadastrar(e: React.FormEvent) {
     e.preventDefault()
 
     setErro(null)
 
-    if (dados.senha !== dados.confirmarSenha) {
-      setErro("As senhas não coincidem")
-      return
-    }
-
-    if (!dados.termos) {
-      setErro("Você precisa aceitar os termos de uso e a política de privacidade")
-      return
-    }
-
-    const { error } = await signUp.email({
-      email: dados.email,
-      password: dados.senha,
-      name: dados.nome,
-      cpf: dados.cpf,
-      telefone: dados.telefone,
-      cidade: dados.cidade,
-      uf: dados.uf,
+    iniciarCadastro(async () => {
+      try {
+        const resultado = await cadastrarConta(dados)
+        setErro(resultado.erro)
+      } catch (erro) {
+        unstable_rethrow(erro)
+        setErro("Não foi possível criar a conta. Tente novamente.")
+      }
     })
-
-    if (error) {
-      setErro(error.message ?? "Não foi possível criar a conta")
-      return
-    }
-
-    console.log("Conta criada com sucesso!")
-
-    router.replace("/perfil/editar")
   }
 
   return (
@@ -80,8 +61,9 @@ export function SignupForm({
       onSubmit={cadastrar}
     >
       {erro && (
-        <div data-test="mensagemErroCadastro" className="text-red-500 text-sm">{erro}</div>
+        <div role="alert" data-test="mensagemErroCadastro" className="text-red-500 text-sm">{erro}</div>
       )}
+      <fieldset disabled={carregando} aria-busy={carregando} className="min-w-0 border-0 p-0">
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
           <h1 className="text-2xl font-bold">Criar sua conta</h1>
@@ -173,7 +155,7 @@ export function SignupForm({
             onChange={(e) => atualizarCampo("senha", e.target.value)}
           />
           <FieldDescription>
-            Minimo de 8 caracteres.
+            De 8 a 128 caracteres, com maiúscula, minúscula, número e um símbolo @$!%*?&.
           </FieldDescription>
         </Field>
         <Field>
@@ -203,7 +185,7 @@ export function SignupForm({
           Li e aceito os termos de uso e a política de privacidade do Doaí
         </label>
         <Field>
-          <Button data-test="buttonCriarConta" type="submit">Criar Conta</Button>
+          <Button data-test="buttonCriarConta" type="submit" disabled={carregando}>{carregando ? "Criando conta..." : "Criar Conta"}</Button>
         </Field>
         <FieldSeparator>Ou continuar com</FieldSeparator>
         <Field>
@@ -246,6 +228,7 @@ export function SignupForm({
           </FieldDescription>
         </Field>
       </FieldGroup>
+      </fieldset>
     </form>
   )
 }
