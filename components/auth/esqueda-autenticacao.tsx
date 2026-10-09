@@ -1,8 +1,8 @@
 "use client"
 
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { DoaiIconCustom } from "@/components/shared/doai-icon";
-import Image from "next/image";
 
 export default function EsquerdaAutenticacao() {
     const isLogin = usePathname() === "/login";
