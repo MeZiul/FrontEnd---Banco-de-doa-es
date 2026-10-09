@@ -1,3 +1,5 @@
+import { API_LOCAL, criarContaSintetica } from "../support/conta-sintetica";
+
 describe("Login", () => {
   beforeEach(() => {
     cy.visit("/login");
@@ -11,10 +13,14 @@ describe("Login", () => {
   });
 
   it("faz login com e-mail e senha", () => {
-    cy.get('[data-test="credencialLogin"]').type("joao@email.com");
-    cy.get('[data-test="senhaLogin"]').type("Senha@123");
+    const conta = criarContaSintetica();
+    cy.request({ method: "POST", url: `${API_LOCAL}/usuario`, body: conta, log: false })
+      .its("status").should("eq", 201);
+    cy.get('[data-test="credencialLogin"]').type(conta.email);
+    cy.get('[data-test="senhaLogin"]').type(conta.senha, { log: false });
     cy.get('[data-test="buttonEntrar"]').click();
 
     cy.url().should("include", "/itens-doacao");
+    cy.getCookie("doai_token").should("exist");
   });
 });
