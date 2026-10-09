@@ -139,6 +139,7 @@ export function SignupForm({
           <Field className="w-20">
             <FieldLabel htmlFor="estado">UF</FieldLabel>
             <UfSelect
+              id="estado"
               value={dados.uf}
               dataTest="ufCadastro"
               onValueChange={(valor) => atualizarCampo("uf", valor)} />

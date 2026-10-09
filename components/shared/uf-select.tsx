@@ -8,6 +8,7 @@ const estados = [
 ]
 
 interface UfSelectProps {
+    id?: string
     value?: string
     onValueChange?: (value: string) => void
     placeholder?: string
@@ -16,6 +17,7 @@ interface UfSelectProps {
 }
 
 export function UfSelect({
+    id,
     value,
     onValueChange,
     placeholder = " ",
@@ -28,7 +30,7 @@ export function UfSelect({
                 if (newValue !== null) onValueChange?.(newValue)
             }}
         >
-            <SelectTrigger data-test={dataTest} className="bg-background">
+            <SelectTrigger id={id} data-test={dataTest} className="bg-background">
                 <SelectValue placeholder={placeholder} />
             </SelectTrigger>
 
