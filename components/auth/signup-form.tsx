@@ -61,7 +61,7 @@ export function SignupForm({
       onSubmit={cadastrar}
     >
       {erro && (
-        <div role="alert" className="text-red-500 text-sm">{erro}</div>
+        <div role="alert" data-test="mensagemErroCadastro" className="text-red-500 text-sm">{erro}</div>
       )}
       <fieldset disabled={carregando} aria-busy={carregando} className="min-w-0 border-0 p-0">
       <FieldGroup>
@@ -73,7 +73,7 @@ export function SignupForm({
         </div>
         <Field>
           <FieldLabel htmlFor="name">Nome Completo</FieldLabel>
-          <Input
+          <Input data-test="nomeCadastro"
             id="name"
             type="text"
             placeholder="Maria da Silva"
@@ -85,7 +85,7 @@ export function SignupForm({
         </Field>
         <Field>
           <FieldLabel htmlFor="email">Email</FieldLabel>
-          <Input
+          <Input data-test="emailCadastro"
             id="email"
             type="email"
             placeholder="seu@email.com"
@@ -98,7 +98,7 @@ export function SignupForm({
         <div className="flex gap-3">
           <Field className="flex-1">
             <FieldLabel htmlFor="cpf">CPF</FieldLabel>
-            <Input
+            <Input data-test="cpfCadastro"
               id="cpf"
               type="text"
               placeholder="000.000.000-00"
@@ -111,7 +111,7 @@ export function SignupForm({
 
           <Field className="flex-1">
             <FieldLabel htmlFor="telefone">Telefone</FieldLabel>
-            <Input
+            <Input data-test="telefoneCadastro"
               id="telefone"
               type="text"
               placeholder="(00) 00000-0000"
@@ -125,7 +125,7 @@ export function SignupForm({
         <div className="flex gap-3">
           <Field className="flex-1">
             <FieldLabel htmlFor="cidade">Cidade</FieldLabel>
-            <Input
+            <Input data-test="cidadeCadastro"
               id="cidade"
               type="text"
               placeholder="Vilhena"
@@ -140,12 +140,13 @@ export function SignupForm({
             <FieldLabel htmlFor="estado">UF</FieldLabel>
             <UfSelect
               value={dados.uf}
+              dataTest="ufCadastro"
               onValueChange={(valor) => atualizarCampo("uf", valor)} />
           </Field>
         </div>
         <Field>
           <FieldLabel htmlFor="password">Senha</FieldLabel>
-          <Input
+          <Input data-test="senhaCadastro"
             id="password"
             type="password"
             required
@@ -159,7 +160,7 @@ export function SignupForm({
         </Field>
         <Field>
           <FieldLabel htmlFor="confirm-password">Confirmar Senha</FieldLabel>
-          <Input
+          <Input data-test="confirmarSenhaCadastro"
             id="confirm-password"
             type="password"
             required
@@ -173,7 +174,7 @@ export function SignupForm({
           htmlFor="termos"
           className="flex items-top gap-2 text-sm text-muted-foreground cursor-pointer"
         >
-          <input
+          <input data-test="termosCadastro"
             id="termos"
             type="checkbox"
             className="h-4 w-4 cursor-pointer accent-[#2973ba]"
@@ -184,12 +185,12 @@ export function SignupForm({
           Li e aceito os termos de uso e a política de privacidade do Doaí
         </label>
         <Field>
-          <Button type="submit" disabled={carregando}>{carregando ? "Criando conta..." : "Criar Conta"}</Button>
+          <Button data-test="buttonCriarConta" type="submit" disabled={carregando}>{carregando ? "Criando conta..." : "Criar Conta"}</Button>
         </Field>
         <FieldSeparator>Ou continuar com</FieldSeparator>
         <Field>
-          <Button variant="outline" type="button" className="w-full cursor-pointer"
-            onClick={() => setErro("Não implemendado ainda")}
+          <Button data-test="buttonGoogleCadastro" variant="outline" type="button" className="w-full cursor-pointer"
+            onClick={() => setErro("Não implementado ainda")}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

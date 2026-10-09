@@ -18,7 +18,7 @@ interface AdminUsuarios {
     data_cadastro: string;
 }
 
-export default function adminUsuariosPage() {
+export default function AdminUsuariosPage() {
     const [dados, setDados] = useState<AdminUsuarios[]>([
         {
             "_id": "80f12018-28f3-4103-b5c0-ce86fd8592ea",
