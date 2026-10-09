@@ -11,12 +11,15 @@ interface UfSelectProps {
     value?: string
     onValueChange?: (value: string) => void
     placeholder?: string
+    // data-test do gatilho (Cypress). Cada opção recebe "opcaoUf<UF>", ex.: opcaoUfRO
+    dataTest?: string
 }
 
 export function UfSelect({
     value,
     onValueChange,
     placeholder = " ",
+    dataTest,
 }: UfSelectProps) {
     return (
         <Select
@@ -25,13 +28,13 @@ export function UfSelect({
                 if (newValue !== null) onValueChange?.(newValue)
             }}
         >
-            <SelectTrigger className="bg-background">
+            <SelectTrigger data-test={dataTest} className="bg-background">
                 <SelectValue placeholder={placeholder} />
             </SelectTrigger>
 
             <SelectContent>
                 {estados.map((estado) => (
-                    <SelectItem key={estado} value={estado}>
+                    <SelectItem key={estado} value={estado} data-test={`opcaoUf${estado}`}>
                         {estado}
                     </SelectItem>
                 ))}
