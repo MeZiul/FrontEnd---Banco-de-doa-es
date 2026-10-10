@@ -23,7 +23,7 @@ export async function consultarMetricasAdmin(consultar: Consulta, erroDeAcesso: 
       const filtros = "somarStatus" in metrica
         ? metrica.somarStatus.map((status) => ({ status }))
         : [metrica.filtros];
-      const totais = await Promise.all(filtros.map(async (filtro) => {
+      const consultas = await Promise.allSettled(filtros.map(async (filtro) => {
         const resposta = await consultar(metrica.caminho, { ...filtro, page: 1, limit: 1 });
         const total = (resposta as { totalDocs?: unknown } | null)?.totalDocs;
         if (typeof total !== "number" || !Number.isSafeInteger(total) || total < 0) {
@@ -31,7 +31,19 @@ export async function consultarMetricasAdmin(consultar: Consulta, erroDeAcesso: 
         }
         return total;
       }));
-      const total = totais.reduce((soma, valor) => soma + valor, 0);
+      let total = 0;
+      let falhou = false;
+      // Uma falha de transporte rápida não pode ocultar perda de acesso em
+      // outra parcela. Todas terminam antes de decidir pelo estado parcial.
+      for (const consulta of consultas) {
+        if (consulta.status === "rejected") {
+          erroDeAcesso(consulta.reason);
+          falhou = true;
+        } else {
+          total += consulta.value;
+        }
+      }
+      if (falhou) throw new Error("Consulta administrativa incompleta.");
       if (!Number.isSafeInteger(total)) {
         throw new Error("Contagem inválida na resposta administrativa.");
       }

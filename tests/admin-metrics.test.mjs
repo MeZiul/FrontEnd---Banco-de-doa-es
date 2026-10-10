@@ -29,6 +29,17 @@ test("total de itens cobre todos os estados e fica indisponível se uma etapa fa
   assert.equal(resultado.find((m) => m.id === "disponiveis").total, 3);
   assert.equal(resultado.find((m) => m.id === "doados").total, 2);
 });
+test("falha rápida em uma parcela não pode ocultar revogação posterior de acesso", async () => {
+  const revogado = new Error("acesso revogado");
+  await assert.rejects(consultarMetricasAdmin(async (caminho, params) => {
+    if (caminho === "admin/itens" && params.status === "RESERVADO") throw new Error("rede indisponível");
+    if (caminho === "admin/itens" && params.status === "CANCELADO") {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      throw revogado;
+    }
+    return { totalDocs: 3 };
+  }, (erro) => { if (erro === revogado) throw erro; }), (erro) => erro === revogado);
+});
 test("zero real permanece zero e falha parcial não esconde outras contagens", async () => {
   const resultado = await consultarMetricasAdmin(async (caminho) => {
     if (caminho === "admin/denuncias") throw new Error("timeout");

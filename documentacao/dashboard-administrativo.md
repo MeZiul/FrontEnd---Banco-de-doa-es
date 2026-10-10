@@ -25,7 +25,7 @@ Validação automatizada: `node --test tests/*.test.mjs`, `npm run lint`, `npm r
 
 ## Evidência local em 2026-10-10
 
-- Testes Node: 53 aprovados. Build e TypeScript aprovados. Lint sem erros, com três avisos preexistentes nas páginas administrativas de gestão.
+- Testes Node: 54 aprovados, incluindo falha rápida em uma parcela seguida de revogação de acesso em outra. Build e TypeScript aprovados. Lint sem erros, com três avisos preexistentes nas páginas administrativas de gestão.
 - Edge headless: seis contagens iguais ao COUNT do PostgreSQL isolado, incluindo itens disponíveis, doados e cancelados criados como fixtures. Desktop 1440 px, mobile 390 px sem overflow, foco do botão por teclado e renderização do dashboard no tema escuro verificados.
 - Loading confirmado durante consulta real com atraso controlado. Falha 503 e timeout locais preservam as outras contagens; retry refaz consulta real. Vazio foi validado com resposta sintética explicitamente identificada.
 - Anônimo, usuário comum, administrador suspenso, função revogada e sessão expirada não recebem indicadores. Suspensão/role/expiração foram alteradas somente nas fixtures próprias do banco local.
