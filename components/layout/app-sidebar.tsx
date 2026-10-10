@@ -52,7 +52,7 @@ const categories = [
 ]
 
 const nav = [
-  { href: "/itens-doacao", label: "Explorar tudo", icon: Compass },
+  { href: "/", label: "Explorar tudo", icon: Compass },
   { href: "/perfil", label: "Sua conta", icon: UserRound },
 ]
 

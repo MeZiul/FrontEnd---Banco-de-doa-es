@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AccountNavigation } from "@/components/layout/account-navigation";
 import { Heart, MapPin } from "lucide-react";
 import { FeedFilters } from "@/components/feed/feed-filters";
 import { FeedPhoto } from "@/components/feed/feed-photo";
@@ -18,13 +19,13 @@ export default async function Home({ searchParams }: {
         <nav aria-label="Navegação principal" className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4">
           <Link href="/" className="flex items-center gap-2 text-2xl font-bold text-blue-700"><Heart className="size-7 fill-current" aria-hidden="true" />Doaí</Link>
           <div className="flex items-center gap-4 text-sm font-semibold">
-            <Link href="/login" className="text-blue-700 hover:underline">Entrar</Link>
-            <Link href="/cadastro" className="rounded-lg bg-blue-700 px-4 py-2.5 text-white hover:bg-blue-800">Criar conta</Link>
+            <AccountNavigation />
           </div>
         </nav>
       </header>
       <main className="mx-auto max-w-7xl space-y-7 px-5 py-8">
         <div><h1 className="text-3xl font-bold tracking-tight">Doações disponíveis</h1><p className="mt-2 text-slate-600">Encontre itens que podem ganhar uma nova história com você.</p></div>
+        <Link href="/doacoes/nova" className="inline-block rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700">Anunciar uma doação</Link>
         <FeedFilters key={urlFeed(filtros)} filtros={filtros} categorias={categorias.status === "fulfilled" ? categorias.value : []} erroCategorias={categorias.status === "rejected"} />
         {!resultado ? (
           <section role="alert" className="rounded-2xl border border-red-200 bg-white p-8 text-center">
@@ -51,6 +52,7 @@ export default async function Home({ searchParams }: {
                     <div className="space-y-3 p-4">
                       <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">{item.categoria_id?.nome || "Doação"}</p>
                       <h3 className="break-words text-lg font-semibold leading-snug">{item.titulo}</h3>
+                      <Link href={`/doacoes/${item._id}`} className="inline-block text-sm font-semibold text-blue-700 underline">Ver detalhes</Link>
                       <p className="text-sm text-slate-600">{CONDICOES[item.condicao_item] ?? "Condição não informada"}</p>
                       <p className="flex items-center gap-1.5 text-sm text-slate-600"><MapPin className="size-4 shrink-0" aria-hidden="true" />{[item.cidade, item.uf].filter(Boolean).join(" / ") || "Localização não informada"}</p>
                     </div>
