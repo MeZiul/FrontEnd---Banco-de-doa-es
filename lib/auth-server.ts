@@ -46,5 +46,5 @@ export async function fetchApiAutenticado<T>(caminho: string, opcoes: OpcoesFetc
 }
 
 export async function getUsuarioLogado(): Promise<Usuario> {
-  return fetchApiAutenticado<Usuario>("perfil");
+  return fetchApiAutenticado<Usuario>("perfil", { signal: AbortSignal.timeout(10000) });
 }

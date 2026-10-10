@@ -38,6 +38,7 @@ export async function fetchApi<T>(
 
   const resposta = await fetch(url, {
     method: metodo,
+    ...(token ? { cache: "no-store" as const } : {}),
     signal,
     headers: {
       ...(body === undefined ? {} : { "Content-Type": "application/json" }),

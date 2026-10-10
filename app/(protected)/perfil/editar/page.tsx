@@ -1,12 +1,13 @@
-// (Ana Júlia visual / Luiz integra salvamento)
-import Link from "next/link";
+import { fetchApiAutenticado } from "@/lib/auth-server";
+import { EditarPerfilForm } from "@/components/perfil/editar-perfil-form";
+import type { Usuario } from "@/types/usuario";
 
-export default function EditarPerfilPage() {
+export default async function EditarPerfilPage() {
+  const usuario = await fetchApiAutenticado<Usuario>("perfil", { signal: AbortSignal.timeout(10000) });
   return (
-    <section className="space-y-4 p-6">
-      <h1 className="text-2xl font-bold">Editar perfil</h1>
-      <p>A edição do perfil ainda está em desenvolvimento.</p>
-      <Link href="/perfil/meus-anuncios" className="text-blue-700 underline">Voltar aos meus anúncios</Link>
+    <section className="space-y-6">
+      <div><h1 className="text-2xl font-bold text-slate-900">Editar perfil</h1><p className="mt-1 text-slate-500">Mantenha seus dados atualizados para facilitar suas doações.</p></div>
+      <EditarPerfilForm perfil={{ nome: usuario.nome, email: usuario.email, telefone: usuario.telefone ?? "", cidade: usuario.cidade, uf: usuario.uf, bio: usuario.bio ?? "" }} />
     </section>
   );
 }

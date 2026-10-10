@@ -45,7 +45,7 @@ test("login traduz senha sem normalizá-la e exige booleano para lembrar", () =>
 test("redirecionamento permite caminhos internos e rejeita destinos externos e barras invertidas", () => {
   assert.equal(destinoInterno("/perfil?aba=meus-anuncios#itens"), "/perfil?aba=meus-anuncios#itens");
   for (const destino of [undefined, 5, "https://evil.test", "//evil.test", "/\\evil.test", "/\nevil.test", "javascript:alert(1)"]) {
-    assert.equal(destinoInterno(destino), "/itens-doacao");
+    assert.equal(destinoInterno(destino), "/");
   }
 });
 
