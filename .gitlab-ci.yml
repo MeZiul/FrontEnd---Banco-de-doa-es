@@ -1,0 +1,60 @@
+stages:
+  - validate
+  - deploy
+
+default:
+  image: node:24-alpine
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - when: never
+
+validate:
+  stage: validate
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+  script:
+    - npm ci
+    - node --test tests/*.test.mjs
+    - npm run lint
+    - npm run build
+  variables:
+    NEXT_PUBLIC_API_URL: "https://api.doai.fs.fslab.dev"
+
+.vercel_deploy:
+  stage: deploy
+  variables:
+    VERCEL_ORG_ID: "team_4WQEC8ByiXWPptrz368sqgAB"
+    VERCEL_PROJECT_ID: "prj_Rzr1QYQSAckJgfvltRFrqFs2TyI8"
+
+deploy_preview:
+  extends: .vercel_deploy
+  resource_group: vercel-preview-dev
+  environment:
+    name: preview
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev" && $CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE == "push"'
+    - when: never
+  script:
+    - test -n "$VERCEL_TOKEN" || { echo "Configure VERCEL_TOKEN masked/protected para preview no GitLab"; exit 1; }
+    - npx --yes vercel@63.1.0 pull --yes --environment=preview --git-branch=dev --token "$VERCEL_TOKEN"
+    - npx --yes vercel@63.1.0 build --token "$VERCEL_TOKEN"
+    - npx --yes vercel@63.1.0 deploy --prebuilt --yes --token "$VERCEL_TOKEN" --meta gitlabDeployment=1 --meta gitlabCommitRef=dev --meta "gitlabCommitSha=$CI_COMMIT_SHA"
+
+deploy_production:
+  extends: .vercel_deploy
+  resource_group: vercel-production
+  environment:
+    name: production
+    url: https://doai-banco-de-doacoes.vercel.app
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE == "push"'
+    - when: never
+  script:
+    - test -n "$VERCEL_TOKEN" || { echo "Configure VERCEL_TOKEN masked/protected para production no GitLab"; exit 1; }
+    - npx --yes vercel@63.1.0 pull --yes --environment=production --token "$VERCEL_TOKEN"
+    - npx --yes vercel@63.1.0 build --prod --token "$VERCEL_TOKEN"
+    - npx --yes vercel@63.1.0 deploy --prebuilt --prod --yes --token "$VERCEL_TOKEN" --meta gitlabDeployment=1 --meta gitlabCommitRef=main --meta "gitlabCommitSha=$CI_COMMIT_SHA"
