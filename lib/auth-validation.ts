@@ -55,7 +55,7 @@ export function validarLogin(entrada: unknown): Validacao<{ email: string; senha
 }
 
 export function destinoInterno(entrada: unknown): string {
-  const fallback = "/itens-doacao";
+  const fallback = "/";
   if (typeof entrada !== "string" || !entrada.startsWith("/") || /[\\\u0000-\u0020\u007f]/.test(entrada)) return fallback;
   const origem = "https://doai.invalid";
   try {

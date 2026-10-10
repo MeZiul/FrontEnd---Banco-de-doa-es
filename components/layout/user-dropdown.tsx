@@ -1,12 +1,14 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useId } from "react";
 import { BotaoSair } from "@/components/auth/logout-button";
 import Link from "next/link";
 
-export default function UserDropdown() {
+export default function UserDropdown({ usuario }: { usuario: { nome: string; email: string; perfil: string } }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuId = useId();
+  const iniciais = usuario.nome.trim().split(/\s+/).slice(0, 2).map(parte => parte[0]).join("").toUpperCase() || "U";
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -21,17 +23,21 @@ export default function UserDropdown() {
   return (
     <div className="relative ml-2" ref={dropdownRef}>
       <button
+        type="button"
+        aria-label={`Conta de ${usuario.nome}`}
+        aria-expanded={isOpen}
+        aria-controls={menuId}
         onClick={() => setIsOpen(!isOpen)}
         className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
       >
-        CN
+        {iniciais}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-12 mt-2 w-56 rounded-xl border border-gray-100 bg-white p-2 shadow-lg ring-1 ring-black ring-opacity-5 z-[100]">
+        <div id={menuId} onKeyDown={event => { if (event.key === "Escape") { setIsOpen(false); dropdownRef.current?.querySelector("button")?.focus(); } }} className="absolute right-0 top-12 mt-2 w-56 rounded-xl border border-gray-100 bg-white p-2 shadow-lg ring-1 ring-black ring-opacity-5 z-[100]">
           <div className="border-b border-gray-100 px-4 py-3 mb-2">
-            <p className="text-sm font-semibold text-gray-900">Camila Nogueira</p>
-            <p className="text-sm text-gray-500 truncate">camila@gmail.com</p>
+            <p className="text-sm font-semibold text-gray-900">{usuario.nome}</p>
+            <p className="text-sm text-gray-500 truncate">{usuario.email}</p>
           </div>
           
           <div className="flex flex-col gap-1">
@@ -44,9 +50,9 @@ export default function UserDropdown() {
             <Link href="/perfil" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors" onClick={() => setIsOpen(false)}>
               Meu perfil público
             </Link>
-            <Link href="/admin/dashboard" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors" onClick={() => setIsOpen(false)}>
+            {usuario.perfil === "ADMINISTRADOR" && <Link href="/admin/dashboard" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md transition-colors" onClick={() => setIsOpen(false)}>
               Administração
-            </Link>
+            </Link>}
           </div>
           
           <div className="border-t border-gray-100 pt-2 mt-2">

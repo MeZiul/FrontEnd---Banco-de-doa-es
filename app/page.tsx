@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AccountNavigation } from "@/components/layout/account-navigation";
 import { Heart, MapPin } from "lucide-react";
 import { FeedFilters } from "@/components/feed/feed-filters";
 import { FeedPhoto } from "@/components/feed/feed-photo";
@@ -18,8 +19,7 @@ export default async function Home({ searchParams }: {
         <nav aria-label="Navegação principal" className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4">
           <Link href="/" className="flex items-center gap-2 text-2xl font-bold text-blue-700"><Heart className="size-7 fill-current" aria-hidden="true" />Doaí</Link>
           <div className="flex items-center gap-4 text-sm font-semibold">
-            <Link href="/login" className="text-blue-700 hover:underline">Entrar</Link>
-            <Link href="/cadastro" className="rounded-lg bg-blue-700 px-4 py-2.5 text-white hover:bg-blue-800">Criar conta</Link>
+            <AccountNavigation />
           </div>
         </nav>
       </header>
