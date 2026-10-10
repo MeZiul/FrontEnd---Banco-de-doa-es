@@ -7,7 +7,7 @@ export default async function AdminDashboardPage() {
   const metricas = await obterDashboardAdmin();
   const falhou = metricas.some((metrica) => metrica.total === null);
   const vazio = metricas.every((metrica) => metrica.total === 0);
-  return <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8 sm:px-6">
+  return <main className="mx-auto w-full max-w-6xl space-y-6 bg-background px-4 py-8 sm:px-6">
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div className="space-y-2">
         <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Painel administrativo</h1>
