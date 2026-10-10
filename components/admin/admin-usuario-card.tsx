@@ -25,6 +25,16 @@ export default function UsuarioCard({ usuario }: Props) {
     const [justificativa, setJustificativa] = useState("");
     const [suspendendo, setSuspendendo] = useState(false);
     const [suspensaoAte, setSuspensaoAte] = useState(""); // "YYYY-MM-DD"
+    const [dataMinimaSuspensao] = useState(() => {
+        const amanha = new Date();
+        amanha.setDate(amanha.getDate() + 1);
+
+        return [
+            amanha.getFullYear(),
+            String(amanha.getMonth() + 1).padStart(2, "0"),
+            String(amanha.getDate()).padStart(2, "0"),
+        ].join("-");
+    });
 
     const { mutate, isPending, error, reset } = useMutation({
         mutationFn: async (acao: Acao) => {
@@ -104,7 +114,7 @@ export default function UsuarioCard({ usuario }: Props) {
                         <input
                             type="date"
                             value={suspensaoAte}
-                            min={new Date(Date.now() + 86400000).toISOString().slice(0, 10)}
+                            min={dataMinimaSuspensao}
                             onChange={(e) => setSuspensaoAte(e.target.value)}
                             disabled={isPending}
                             className="w-48 rounded-xl border p-2 text-sm"
