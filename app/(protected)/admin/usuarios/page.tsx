@@ -10,6 +10,9 @@ import { parseAsInteger, useQueryStates } from "nuqs";
 
 import DataPagination from "@/components/ui/DataPagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useEffect } from "react";
+
+const LIMITES_PERMITIDOS = [5, 10, 20, 50];
 
 export default function AdminUsuariosPage() {
     const [{ pagina, limit }, setPaginacao] = useQueryStates(
@@ -23,12 +26,64 @@ export default function AdminUsuariosPage() {
         }
     );
 
-    const { data, isPending, isError, error, isFetching } = useQuery<RespostaPaginada<AdminUsuario>>({
-        queryKey: ["adminUsuarios", pagina, limit],
-        queryFn: () => listarUsuarios(pagina, limit),
+    // Evita consultar a API com uma página inválida.
+    const paginaAtual = Number.isSafeInteger(pagina) && pagina >= 1 ? pagina : 1;
+    const limiteAtual = LIMITES_PERMITIDOS.includes(limit) ? limit : 5;
+
+    const { data, isPending, isError, error, isFetching, refetch } = useQuery<RespostaPaginada<AdminUsuario>>({
+        queryKey: ["adminUsuarios", paginaAtual, limiteAtual],
+        queryFn: () => listarUsuarios(paginaAtual, limiteAtual),
     });
 
 
+    // Corrige os parâmetros inválidos da URL.
+    useEffect(() => {
+        if (pagina !== paginaAtual || limit !== limiteAtual) {
+            void setPaginacao({
+                pagina: paginaAtual,
+                limit: limiteAtual,
+            });
+        }
+    }, [pagina, paginaAtual, limit, limiteAtual, setPaginacao]);
+
+    // Se a página atual deixar de existir, retorna à última página válida.
+    useEffect(() => {
+        if (!data) return;
+
+        const totalPaginas = Math.max(1, data.totalPages);
+
+        if (paginaAtual > totalPaginas) {
+            void setPaginacao({ pagina: totalPaginas });
+        }
+    }, [data, paginaAtual, setPaginacao]);
+
+    async function mudarLimite(valor: string | null) {
+        if (valor === null) return;
+
+        const novoLimite = Number(valor);
+
+        if (!LIMITES_PERMITIDOS.includes(novoLimite)) return;
+
+        await setPaginacao({
+            pagina: 1,
+            limit: novoLimite,
+        });
+    }
+
+    async function mudarPagina(destino: number) {
+        const totalPaginas = Math.max(1, data?.totalPages ?? 1);
+
+        if (
+            !Number.isSafeInteger(destino) ||
+            destino < 1 ||
+            destino > totalPaginas ||
+            destino === paginaAtual
+        ) {
+            return;
+        }
+
+        await setPaginacao({ pagina: destino });
+    }
     return (
         <div className="flex min-h-full flex-1 flex-col gap-5">
             <AdminCardHeader />
@@ -64,22 +119,30 @@ export default function AdminUsuariosPage() {
 
                     <div className="relative flex shrink-0 flex-col items-center justify-center gap-3 border-t bg-[#F8FAFC] py-3 sm:flex-row">
                         <div className="flex items-center gap-2 sm:absolute sm:left-0">
-                            <span className="text-sm text-muted-foreground">
-                                Exibir
-                            </span>
+                        <label
+                            htmlFor="limite-usuarios"
+                            className="text-sm text-muted-foreground"
+                        >
+                            Exibir
+                        </label>
+
 
                             <Select
-                                value={String(limit)}
+                                value={String(limiteAtual)}
                                 onValueChange={(valor) =>
-                                    void setPaginacao({ pagina: 1, limit: Number(valor), })
+                                    void mudarLimite(valor)
                                 }
+                                disabled={isFetching}
                             >
-                                <SelectTrigger className="w-20">
+                                <SelectTrigger
+                                    id="limite-usuarios"
+                                    className="w-20"
+                                >
                                     <SelectValue />
                                 </SelectTrigger>
 
                                 <SelectContent>
-                                    {[5, 10, 20, 50].map((quantidade) => (
+                                    {LIMITES_PERMITIDOS.map((quantidade) => (
                                         <SelectItem
                                             key={quantidade}
                                             value={String(quantidade)}
@@ -90,15 +153,17 @@ export default function AdminUsuariosPage() {
                                 </SelectContent>
                             </Select>
 
+
+
                             <span className="text-sm text-muted-foreground">
                                 por página
                             </span>
                         </div>
 
                         <DataPagination
-                            pagina={pagina}
-                            totalPaginas={Math.max(1, data?.totalPages ?? 1)}
-                            aoMudarPagina={(destino) => void setPaginacao({ pagina: destino })}
+                            pagina={paginaAtual}
+                            totalPaginas={Math.max(1, data.totalPages)}
+                            aoMudarPagina={(destino) => void mudarPagina(destino)}
                         />
                     </div>
 
