@@ -6,7 +6,7 @@ function ThemeFrame({ theme, children }: { theme: string; children: ReactNode })
   useEffect(() => {
     const hadDark = document.documentElement.classList.contains('dark');
     document.documentElement.classList.toggle('dark', theme === 'dark');
-    return () => document.documentElement.classList.toggle('dark', hadDark);
+    return () => { document.documentElement.classList.toggle('dark', hadDark); };
   }, [theme]);
   return <div className="min-h-40 bg-background p-5 text-foreground">{children}</div>;
 }
