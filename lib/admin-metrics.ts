@@ -1,0 +1,32 @@
+type Parametros = Record<string, string | number>;
+export const METRICAS_ADMIN = [
+  { id: "usuarios", titulo: "Usuários cadastrados", descricao: "Todas as situações de cadastro", caminho: "admin/usuarios", filtros: {} },
+  { id: "ativos", titulo: "Usuários ativos", descricao: "Cadastros na situação ativo", caminho: "admin/usuarios", filtros: { situacao: "ATIVO" } },
+  { id: "itens", titulo: "Itens cadastrados", descricao: "Todas as etapas da doação", caminho: "admin/itens", filtros: {} },
+  { id: "disponiveis", titulo: "Itens disponíveis", descricao: "Itens disponíveis para interesse", caminho: "admin/itens", filtros: { status: "DISPONIVEL" } },
+  { id: "doados", titulo: "Doações concluídas", descricao: "Itens na etapa doado", caminho: "admin/itens", filtros: { status: "DOADO" } },
+  { id: "denuncias", titulo: "Denúncias em análise", descricao: "Relatos aguardando uma decisão", caminho: "admin/denuncias", filtros: { status: "EM_ANALISE" } },
+] as const;
+
+export function administradorAtivo(usuario: { perfil?: string; situacao?: string } | null | undefined) {
+  return usuario?.perfil === "ADMINISTRADOR" && usuario.situacao === "ATIVO";
+}
+type Consulta = (caminho: string, params: Parametros) => Promise<unknown>;
+
+// Mantém somente a contagem no DTO da tela; docs e dados pessoais ficam no servidor.
+export async function consultarMetricasAdmin(consultar: Consulta, erroDeAcesso: (erro: unknown) => void) {
+  return Promise.all(METRICAS_ADMIN.map(async (metrica) => {
+    try {
+      const resposta = await consultar(metrica.caminho, { ...metrica.filtros, page: 1, limit: 1 });
+      const total = (resposta as { totalDocs?: unknown } | null)?.totalDocs;
+      if (typeof total !== "number" || !Number.isSafeInteger(total) || total < 0) {
+        throw new Error("Contagem inválida na resposta administrativa.");
+      }
+      return { id: metrica.id, titulo: metrica.titulo, descricao: metrica.descricao, total };
+    } catch (erro) {
+      // Redirecionamentos e perda de permissão devem interromper toda a resposta.
+      erroDeAcesso(erro);
+      return { id: metrica.id, titulo: metrica.titulo, descricao: metrica.descricao, total: null };
+    }
+  }));
+}
