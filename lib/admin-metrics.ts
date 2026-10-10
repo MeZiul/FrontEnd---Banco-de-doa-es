@@ -1,8 +1,11 @@
 type Parametros = Record<string, string | number>;
+// Ausência de status na API seleciona DISPONIVEL. O total precisa cobrir
+// cada estado disjunto suportado pelo schema vigente de ItemDoacao.
+const STATUS_ITENS = ["DISPONIVEL", "RESERVADO", "AGUARDANDO_CONFIRMACAO", "DOADO", "CANCELADO"] as const;
 export const METRICAS_ADMIN = [
   { id: "usuarios", titulo: "Usuários cadastrados", descricao: "Todas as situações de cadastro", caminho: "admin/usuarios", filtros: {} },
   { id: "ativos", titulo: "Usuários ativos", descricao: "Cadastros na situação ativo", caminho: "admin/usuarios", filtros: { situacao: "ATIVO" } },
-  { id: "itens", titulo: "Itens cadastrados", descricao: "Todas as etapas da doação", caminho: "admin/itens", filtros: {} },
+  { id: "itens", titulo: "Itens cadastrados", descricao: "Todas as etapas da doação", caminho: "admin/itens", filtros: {}, somarStatus: STATUS_ITENS },
   { id: "disponiveis", titulo: "Itens disponíveis", descricao: "Itens disponíveis para interesse", caminho: "admin/itens", filtros: { status: "DISPONIVEL" } },
   { id: "doados", titulo: "Doações concluídas", descricao: "Itens na etapa doado", caminho: "admin/itens", filtros: { status: "DOADO" } },
   { id: "denuncias", titulo: "Denúncias em análise", descricao: "Relatos aguardando uma decisão", caminho: "admin/denuncias", filtros: { status: "EM_ANALISE" } },
@@ -17,9 +20,19 @@ type Consulta = (caminho: string, params: Parametros) => Promise<unknown>;
 export async function consultarMetricasAdmin(consultar: Consulta, erroDeAcesso: (erro: unknown) => void) {
   return Promise.all(METRICAS_ADMIN.map(async (metrica) => {
     try {
-      const resposta = await consultar(metrica.caminho, { ...metrica.filtros, page: 1, limit: 1 });
-      const total = (resposta as { totalDocs?: unknown } | null)?.totalDocs;
-      if (typeof total !== "number" || !Number.isSafeInteger(total) || total < 0) {
+      const filtros = "somarStatus" in metrica
+        ? metrica.somarStatus.map((status) => ({ status }))
+        : [metrica.filtros];
+      const totais = await Promise.all(filtros.map(async (filtro) => {
+        const resposta = await consultar(metrica.caminho, { ...filtro, page: 1, limit: 1 });
+        const total = (resposta as { totalDocs?: unknown } | null)?.totalDocs;
+        if (typeof total !== "number" || !Number.isSafeInteger(total) || total < 0) {
+          throw new Error("Contagem inválida na resposta administrativa.");
+        }
+        return total;
+      }));
+      const total = totais.reduce((soma, valor) => soma + valor, 0);
+      if (!Number.isSafeInteger(total)) {
         throw new Error("Contagem inválida na resposta administrativa.");
       }
       return { id: metrica.id, titulo: metrica.titulo, descricao: metrica.descricao, total };

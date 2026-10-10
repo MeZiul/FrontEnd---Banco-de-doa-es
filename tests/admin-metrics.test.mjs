@@ -10,10 +10,24 @@ test("usa totalDocs completo, limit=1 e filtros reais de cada contrato admin", a
   }, () => {});
   assert.equal(resultado.length, 6);
   for (let i = 0; i < resultado.length; i++) {
-    assert.equal(resultado[i].total, 1251);
-    assert.deepEqual(chamadas[i], { caminho: METRICAS_ADMIN[i].caminho, params: { ...METRICAS_ADMIN[i].filtros, page: 1, limit: 1 } });
+    assert.equal(resultado[i].total, METRICAS_ADMIN[i].id === "itens" ? 6255 : 1251);
     assert.equal("docs" in resultado[i], false);
   }
+  assert.deepEqual(chamadas, METRICAS_ADMIN.flatMap((metrica) => {
+    const filtros = metrica.id === "itens"
+      ? ["DISPONIVEL", "RESERVADO", "AGUARDANDO_CONFIRMACAO", "DOADO", "CANCELADO"].map((status) => ({ status }))
+      : [metrica.filtros];
+    return filtros.map((filtro) => ({ caminho: metrica.caminho, params: { ...filtro, page: 1, limit: 1 } }));
+  }));
+});
+test("total de itens cobre todos os estados e fica indisponível se uma etapa falhar", async () => {
+  const resultado = await consultarMetricasAdmin(async (caminho, params) => {
+    if (caminho === "admin/itens" && params.status === "CANCELADO") throw new Error("falha em uma etapa");
+    return { totalDocs: params.status === "DOADO" ? 2 : 3 };
+  }, () => {});
+  assert.equal(resultado.find((m) => m.id === "itens").total, null);
+  assert.equal(resultado.find((m) => m.id === "disponiveis").total, 3);
+  assert.equal(resultado.find((m) => m.id === "doados").total, 2);
 });
 test("zero real permanece zero e falha parcial não esconde outras contagens", async () => {
   const resultado = await consultarMetricasAdmin(async (caminho) => {
