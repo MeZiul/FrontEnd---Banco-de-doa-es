@@ -183,7 +183,7 @@ export function SignupForm({
             onChange={(e) => atualizarCampo("termos", e.target.checked)}
           />
 
-          Li e aceito os termos de uso e a política de privacidade do Doaí
+          <span>Li e aceito os <Link href="/termos" className="text-blue-700 underline" target="_blank" rel="noopener noreferrer">termos de uso</Link> e a <Link href="/privacidade" className="text-blue-700 underline" target="_blank" rel="noopener noreferrer">política de privacidade</Link> do Doaí</span>
         </label>
         <Field>
           <Button data-test="buttonCriarConta" type="submit" disabled={carregando}>{carregando ? "Criando conta..." : "Criar Conta"}</Button>
