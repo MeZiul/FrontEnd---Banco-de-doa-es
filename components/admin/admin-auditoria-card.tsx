@@ -1,35 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { AdminAuditoria } from "@/types/admin-auditoria";
 
 interface AuditoriaCardProps {
-    auditoria: {
-        tipo_acao: string;
-        tipo_alvo: string;
-        alvo_model: string;
-        justificativa: string;
-        suspensao_ate: string | null;
-        resultado_denuncia: string | null;
-        resposta_administrativa: string | null;
-        acao_tomada: string | null;
-        data_acao: string;
-
-        administrador_id: {
-            nome: string;
-            email: string;
-        };
-
-        alvo_id: {
-            nome: string;
-            email: string;
-            perfil: string;
-            situacao: string;
-        };
-    };
+    auditoria: AdminAuditoria;
 }
 
 export default function AuditoriaCard({
     auditoria,
 }: AuditoriaCardProps) {
     const dataAcao = new Date(auditoria.data_acao);
+    const administrador = typeof auditoria.administrador_id === "object" ? auditoria.administrador_id : null;
+    const alvo = typeof auditoria.alvo_id === "object" ? auditoria.alvo_id : null;
+    const nomeAlvo = alvo?.nome || alvo?.titulo || alvo?.motivo || (typeof auditoria.alvo_id === "string" ? auditoria.alvo_id : "Alvo indisponível");
 
     return (
         <Card>
@@ -61,25 +43,25 @@ export default function AuditoriaCard({
                     </p>
 
                     <p className="text-sm text-muted-foreground">
-                        {auditoria.administrador_id.nome}
+                        {administrador?.nome || "Administrador indisponível"}
                     </p>
 
                     <p className="text-sm text-muted-foreground">
-                        {auditoria.administrador_id.email}
+                        {administrador?.email}
                     </p>
                 </div>
 
                 <div>
                     <p className="text-sm font-semibold">
-                        Usuário afetado
+                        Alvo da ação · {auditoria.tipo_alvo}
                     </p>
 
                     <p className="text-sm text-muted-foreground">
-                        {auditoria.alvo_id.nome}
+                        {nomeAlvo}
                     </p>
 
                     <p className="text-sm text-muted-foreground">
-                        {auditoria.alvo_id.email}
+                        {alvo?.email}
                     </p>
                 </div>
 
@@ -89,7 +71,7 @@ export default function AuditoriaCard({
                     </p>
 
                     <p className="text-sm text-muted-foreground">
-                        {auditoria.justificativa}
+                        {auditoria.justificativa || "Não informada"}
                     </p>
                 </div>
 

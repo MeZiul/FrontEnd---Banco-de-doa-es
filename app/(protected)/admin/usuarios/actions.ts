@@ -47,7 +47,7 @@ export async function listarUsuarios(
     "admin/usuarios",
     {
       params: {
-        pagina,
+        page: pagina,
         limit,
       },
     }

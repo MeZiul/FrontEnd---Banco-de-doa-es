@@ -77,7 +77,7 @@ export async function listarDenunciasAction(
         "admin/denuncias",
         {
             params: {
-                pagina,
+                page: pagina,
                 limit,
             },
         },
