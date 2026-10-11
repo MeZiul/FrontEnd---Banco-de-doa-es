@@ -6,12 +6,22 @@ export function proxy(request: NextRequest) {
 
     if (!request.cookies.has(COOKIE_TOKEN)) {
         const login = new URL("/login", request.url);
-        login.searchParams.set("redirect", request.nextUrl.pathname);
+
+        login.searchParams.set(
+            "redirect",
+            request.nextUrl.pathname + request.nextUrl.search
+        );
+
         return NextResponse.redirect(login);
     }
+
     return NextResponse.next();
 }
 
 export const config = {
-    matcher: ["/perfil/:path*", "/admin/:path*", "/itens-doacao/:path*"],
+    matcher: [
+        "/perfil/:path*",
+        "/admin/:path*",
+        "/itens-doacao/:path*",
+    ],
 };

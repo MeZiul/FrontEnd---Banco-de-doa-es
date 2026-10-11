@@ -8,6 +8,7 @@ import { entrar } from "@/app/(auth)/actions"
 import { useState, useTransition } from "react"
 import { unstable_rethrow } from "next/navigation"
 import Link from "next/link"
+import { authClient } from "@/lib/auth-client"
 
 export function LoginForm({
   className,
@@ -30,6 +31,14 @@ export function LoginForm({
       try {
         const resultado = await entrar({ email, senha: password, lembrar }, destino)
         setErro(resultado.erro)
+        
+        const sessao = await authClient.getSession();
+
+        console.log("Sessão após login:", {
+          usuario: sessao.data?.user?.email,
+          autenticado: Boolean(sessao.data?.session),
+          erro: sessao.error?.message,
+        });
       } catch (erro) {
         unstable_rethrow(erro)
         setErro("Não foi possível realizar o login. Tente novamente.")
