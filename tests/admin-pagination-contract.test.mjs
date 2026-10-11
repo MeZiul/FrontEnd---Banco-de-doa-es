@@ -6,7 +6,7 @@ import ts from "typescript";
 
 function carregar(path) {
   const chamadas = [];
-  const contexto = { exports: {}, require(nome) {
+  const contexto = { exports: {}, AbortSignal, require(nome) {
     if (nome === "next/navigation") return { unstable_rethrow: erro => { if (erro.redirect) throw erro; } };
     if (nome === "@/lib/auth-server") return { fetchApiAutenticado: async (route, options) => {
       chamadas.push({ route, options });
@@ -23,6 +23,7 @@ function carregar(path) {
 for (const [file, action, route] of [
   ["../app/(protected)/admin/usuarios/actions.ts", "listarUsuarios", "admin/usuarios"],
   ["../app/(protected)/admin/denuncias/actions.ts", "listarDenunciasAction", "admin/denuncias"],
+  ["../app/(protected)/admin/auditoria/actions.ts", "buscarAuditorias", "admin/administracoes"],
 ]) {
   test(`${route}: páginas distintas usam o contrato da API e preservam o limite`, async () => {
     const app = carregar(file);
