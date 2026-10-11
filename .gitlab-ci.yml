@@ -41,8 +41,8 @@ deploy_preview:
   script:
     - test -n "$VERCEL_TOKEN" || { echo "Configure VERCEL_TOKEN masked/protected para preview no GitLab"; exit 1; }
     - npx --yes vercel@63.1.0 pull --yes --environment=preview --git-branch=dev --token "$VERCEL_TOKEN"
-    - npx --yes vercel@63.1.0 build --token "$VERCEL_TOKEN"
-    - npx --yes vercel@63.1.0 deploy --prebuilt --yes --token "$VERCEL_TOKEN" --meta gitlabDeployment=1 --meta gitlabCommitRef=dev --meta "gitlabCommitSha=$CI_COMMIT_SHA"
+    - npx --yes vercel@63.1.0 build --target=preview --token "$VERCEL_TOKEN"
+    - npx --yes vercel@63.1.0 deploy --prebuilt --target=preview --yes --token "$VERCEL_TOKEN" --meta gitlabDeployment=1 --meta gitlabCommitRef=dev --meta "gitlabCommitSha=$CI_COMMIT_SHA"
 
 deploy_production:
   extends: .vercel_deploy
