@@ -1,131 +1,27 @@
 "use client";
 
 import AuditoriaCard from "@/components/admin/admin-auditoria-card";
-import { Card, CardDescription, CardHeader, CardTitle, } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldCheck } from "lucide-react";
-import { useState } from "react";
-
-interface AdminAuditoria {
-    _id: string;
-    administrador_id: {
-        _id: string;
-        nome: string;
-        email: string;
-        perfil: string;
-        situacao: string;
-    };
-    tipo_acao: string;
-    tipo_alvo: string;
-    alvo_id: {
-        _id: string;
-        nome: string;
-        email: string;
-        perfil: string;
-        situacao: string;
-    };
-    alvo_model: string;
-    justificativa: string;
-    suspensao_ate: string | null;
-    resultado_denuncia: string | null;
-    resposta_administrativa: string | null;
-    acao_tomada: string | null;
-    data_acao: string;
-    createdAt: string;
-    updatedAt: string;
-}
+import { useQuery } from "@tanstack/react-query";
+import { useQueryState, parseAsInteger } from "nuqs";
+import { buscarAuditorias } from "./actions";
 
 export default function AdminAuditoriaPage() {
-    const [dados, setDados] = useState<AdminAuditoria[]>([
-        {
-            _id: "507f1f77bcf86cd799439017",
-            administrador_id: {
-                _id: "507f1f77bcf86cd799439012",
-                nome: "Usuário Moderado",
-                email: "usuario@email.com",
-                perfil: "USUARIO",
-                situacao: "ATIVO",
-            },
-            tipo_acao: "BLOQUEIO_USUARIO",
-            tipo_alvo: "USUARIO",
-            alvo_id: {
-                _id: "507f1f77bcf86cd799439012",
-                nome: "Usuário Moderado",
-                email: "usuario@email.com",
-                perfil: "USUARIO",
-                situacao: "ATIVO",
-            },
-            alvo_model: "Usuario",
-            justificativa:
-                "Violação reiterada das regras da plataforma.",
-            suspensao_ate:
-                "2026-09-20T04:04:50.103Z",
-            resultado_denuncia: "PROCEDENTE",
-            resposta_administrativa:
-                "Conta suspensa após análise.",
-            acao_tomada:
-                "Usuário suspenso.",
-            data_acao:
-                "2026-09-20T04:04:50.103Z",
-            createdAt:
-                "2026-09-20T04:04:50.103Z",
-            updatedAt:
-                "2026-09-20T04:04:50.103Z",
-        }, {
-            _id: "507f1f77bcf86cd799439018",
-            administrador_id: {
-                _id: "507f1f77bcf86cd799439013",
-                nome: "Administrador Doaí",
-                email: "admin@doai.com",
-                perfil: "ADMIN",
-                situacao: "ATIVO",
-            },
-            tipo_acao: "REJEICAO_DENUNCIA",
-            tipo_alvo: "DENUNCIA",
-            alvo_id: {
-                _id: "507f1f77bcf86cd799439014",
-                nome: "Sofá 3 lugares em tecido cinza",
-                email: "anuncio@doai.com",
-                perfil: "USUARIO",
-                situacao: "ATIVO",
-            },
-            alvo_model: "Denuncia",
-            justificativa: "Após análise, não foram identificadas violações das regras da plataforma.",
-            suspensao_ate: null,
-            resultado_denuncia: "IMPROCEDENTE",
-            resposta_administrativa: "Denúncia rejeitada após análise.",
-            acao_tomada: "Nenhuma ação aplicada ao usuário.",
-            data_acao: "2026-09-18T15:30:00.000Z",
-            createdAt: "2026-09-18T15:30:00.000Z",
-            updatedAt: "2026-09-18T15:30:00.000Z",
-        }, {
-            _id: "507f1f77bcf86cd799439019",
-            administrador_id: {
-                _id: "507f1f77bcf86cd799439015",
-                nome: "Administrador Doaí",
-                email: "admin@doai.com",
-                perfil: "ADMIN",
-                situacao: "ATIVO",
-            },
-            tipo_acao: "INATIVACAO_USUARIO",
-            tipo_alvo: "USUARIO",
-            alvo_id: {
-                _id: "507f1f77bcf86cd799439016",
-                nome: "Lucas Ferreira",
-                email: "lucas@email.com",
-                perfil: "USUARIO",
-                situacao: "INATIVO",
-            },
-            alvo_model: "Usuario",
-            justificativa: "Solicitação de exclusão de conta realizada pelo próprio usuário.",
-            suspensao_ate: null,
-            resultado_denuncia: null,
-            resposta_administrativa: "Solicitação de exclusão processada.",
-            acao_tomada: "Conta do usuário inativada.",
-            data_acao: "2026-09-15T10:20:00.000Z",
-            createdAt: "2026-09-15T10:20:00.000Z",
-            updatedAt: "2026-09-15T10:20:00.000Z",
-        },
-    ]);
+    const [pagina, setPagina] = useQueryState("pagina", parseAsInteger.withDefault(1));
+    const [limit, setLimit] = useQueryState("limit", parseAsInteger.withDefault(10));
+
+    const { data, isPending, isError, error } = useQuery({
+        queryKey: ["admin", "auditoria", pagina, limit],
+        queryFn: () => buscarAuditorias(pagina, limit),
+    });
+
+    const dados = data?.docs ?? [];
+
+    function alterarLimite(novoLimite: number) {
+        setLimit(novoLimite);
+        setPagina(1);
+    }
 
     return (
         <div className="space-y-6">
@@ -143,24 +39,96 @@ export default function AdminAuditoriaPage() {
                 </CardHeader>
             </Card>
 
-            <div>
-                <Card className="w-full rounded-3xl border-slate-200 bg-white shadow-sm">
-                    <CardHeader className="p-5 sm:p-6">
-                        <CardTitle className="text-xl font-bold text-[#001f3f]">
-                            Trilha de auditoria
-                        </CardTitle>
-                    </CardHeader>
+            <Card className="w-full rounded-3xl border-slate-200 bg-white shadow-sm">
+                <CardHeader className="p-5 sm:p-6">
+                    <CardTitle className="text-xl font-bold text-[#001f3f]">
+                        Trilha de auditoria
+                    </CardTitle>
 
-                    <div className="space-y-3 px-5 pb-5 sm:px-6 sm:pb-6">
-                        {dados.map((auditoria) => (
-                            <AuditoriaCard
-                                key={auditoria._id}
-                                auditoria={auditoria}
-                            />
-                        ))}
+                    {data && (
+                        <CardDescription>
+                            {data.totalDocs} registro(s) encontrado(s).
+                        </CardDescription>
+                    )}
+                </CardHeader>
+
+                <div className="space-y-3 px-5 pb-5 sm:px-6 sm:pb-6">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <label
+                            htmlFor="limite-auditoria"
+                            className="text-sm text-slate-600"
+                        >
+                            Registros por página:
+                        </label>
+
+                        <select
+                            id="limite-auditoria"
+                            value={limit}
+                            onChange={(event) =>
+                                alterarLimite(Number(event.target.value))
+                            }
+                            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value={5}>5</option>
+                            <option value={10}>10</option>
+                            <option value={20}>20</option>
+                            <option value={50}>50</option>
+                        </select>
                     </div>
-                </Card>
-            </div>
+
+                    {isPending && (
+                        <p className="text-sm text-slate-500">
+                            Carregando registros de auditoria...
+                        </p>
+                    )}
+
+                    {isError && (
+                        <p className="text-sm text-red-600">
+                            Não foi possível carregar os registros de auditoria.
+                            {error instanceof Error ? ` ${error.message}` : ""}
+                        </p>
+                    )}
+
+                    {!isPending && !isError && dados.length === 0 && (
+                        <p className="text-sm text-slate-500">
+                            Nenhum registro de auditoria encontrado.
+                        </p>
+                    )}
+
+                    {!isError && dados.map((auditoria) => (
+                        <AuditoriaCard
+                            key={auditoria._id}
+                            auditoria={auditoria}
+                        />
+                    ))}
+
+                    {data && data.totalPages > 1 && (
+                        <div className="flex items-center justify-between gap-4 border-t pt-4">
+                            <button
+                                type="button"
+                                onClick={() => setPagina(Math.max(1, pagina - 1))}
+                                disabled={!data.hasPrevPage || isPending}
+                                className="rounded-md border px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Anterior
+                            </button>
+
+                            <span className="text-sm text-slate-600">
+                                Página {data.page} de {data.totalPages}
+                            </span>
+
+                            <button
+                                type="button"
+                                onClick={() => setPagina(pagina + 1)}
+                                disabled={!data.hasNextPage || isPending}
+                                className="rounded-md border px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Próxima
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </Card>
         </div>
     );
 }
