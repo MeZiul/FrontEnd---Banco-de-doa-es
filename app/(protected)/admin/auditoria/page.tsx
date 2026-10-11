@@ -11,7 +11,7 @@ export default function AdminAuditoriaPage() {
     const [pagina, setPagina] = useQueryState("pagina", parseAsInteger.withDefault(1));
     const [limit, setLimit] = useQueryState("limit", parseAsInteger.withDefault(10));
 
-    const { data, isPending, isError, error } = useQuery({
+    const { data, isPending, isError, refetch } = useQuery({
         queryKey: ["admin", "auditoria", pagina, limit],
         queryFn: () => buscarAuditorias(pagina, limit),
     });
@@ -83,10 +83,12 @@ export default function AdminAuditoriaPage() {
                     )}
 
                     {isError && (
-                        <p className="text-sm text-red-600">
+                        <div role="alert" className="space-y-2 text-sm text-red-600">
+                          <p>
                             Não foi possível carregar os registros de auditoria.
-                            {error instanceof Error ? ` ${error.message}` : ""}
-                        </p>
+                          </p>
+                          <button type="button" onClick={() => void refetch()} className="rounded-md border px-4 py-2 text-blue-800">Tentar novamente</button>
+                        </div>
                     )}
 
                     {!isPending && !isError && dados.length === 0 && (

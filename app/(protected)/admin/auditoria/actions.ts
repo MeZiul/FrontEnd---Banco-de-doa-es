@@ -1,35 +1,8 @@
 "use server";
 
 import { fetchApiAutenticado } from "@/lib/auth-server";
-
-export interface AdminAuditoria {
-    _id: string;
-    administrador_id: {
-        _id: string;
-        nome: string;
-        email: string;
-        perfil: string;
-        situacao: string;
-    };
-    tipo_acao: string;
-    tipo_alvo: string;
-    alvo_id: {
-        _id: string;
-        nome: string;
-        email: string;
-        perfil: string;
-        situacao: string;
-    };
-    alvo_model: string;
-    justificativa: string;
-    suspensao_ate: string | null;
-    resultado_denuncia: string | null;
-    resposta_administrativa: string | null;
-    acao_tomada: string | null;
-    data_acao: string;
-    createdAt: string;
-    updatedAt: string;
-}
+import type { AdminAuditoria } from "@/types/admin-auditoria";
+export type { AdminAuditoria } from "@/types/admin-auditoria";
 
 export interface RespostaAuditorias {
     docs: AdminAuditoria[];
@@ -43,20 +16,11 @@ export interface RespostaAuditorias {
     nextPage: number | null;
 }
 
-export async function buscarAuditorias(
-    pagina = 1,
-    limit = 10,
-): Promise<RespostaAuditorias> {
-    const resposta =
-        await fetchApiAutenticado<RespostaAuditorias>(
-            "admin/administracoes",
-            {
-                params: {
-                    pagina,
-                    limit,
-                },
-            },
-        );
-
-    return resposta;
+export async function buscarAuditorias(pagina = 1, limit = 10): Promise<RespostaAuditorias> {
+    if (!Number.isSafeInteger(pagina) || pagina < 1) throw new Error("Página inválida.");
+    if (![5, 10, 20, 50].includes(limit)) throw new Error("Limite inválido.");
+    return fetchApiAutenticado<RespostaAuditorias>("admin/administracoes", {
+        params: { page: pagina, limit },
+        signal: AbortSignal.timeout(10000),
+    });
 }
