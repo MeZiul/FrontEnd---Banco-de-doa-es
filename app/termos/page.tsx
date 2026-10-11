@@ -1,6 +1,23 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import { TermosConteudo } from "@/components/shared/termos-conteudo";
-export const metadata = { title: "Termos de Uso | Doaí" };
+import { LegalDocument } from "@/components/legal/legal-document";
+import { termosSections } from "@/components/legal/legal-content";
+import { PublicSiteShell } from "@/components/home/public-site-shell";
+
+export const metadata: Metadata = { title: "Termos de Uso | Doaí", description: "Regras para publicar, encontrar e combinar doações na Doaí." };
+
 export default function TermosPublicos() {
-  return <main className="mx-auto w-full max-w-3xl space-y-6 px-5 py-8"><Link href="/" className="font-bold text-blue-700">Doaí</Link><h1 className="text-2xl font-bold text-slate-900">Termos de Uso</h1><TermosConteudo /><nav aria-label="Documentos do Doaí" className="flex flex-wrap gap-5 text-blue-700 underline"><Link href="/privacidade">Política de privacidade</Link><Link href="/cadastro">Voltar ao cadastro</Link></nav></main>;
+  return (
+    <PublicSiteShell>
+      <div className="mx-auto max-w-4xl space-y-5">
+        <LegalDocument
+          title="Termos de Uso"
+          updatedAt="11 de outubro de 2026"
+          introduction="Leia as orientações para usar a plataforma e combinar doações com clareza e cuidado."
+          sections={termosSections}
+        />
+        <p className="text-sm text-slate-600">Dúvidas de uso? Consulte a <Link href="/ajuda" className="font-semibold text-blue-800 underline underline-offset-4">Central de Ajuda</Link> ou leia a <Link href="/privacidade" className="font-semibold text-blue-800 underline underline-offset-4">Política de Privacidade</Link>.</p>
+      </div>
+    </PublicSiteShell>
+  );
 }
