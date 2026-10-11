@@ -1,5 +1,6 @@
 "use server";
 
+import { unstable_rethrow } from "next/navigation";
 import { fetchApiAutenticado } from "@/lib/auth-server";
 
 export interface AdminUsuario {
@@ -66,6 +67,7 @@ async function alterarSituacaoUsuario(id: string, acao: AcaoUsuario, body?: Reco
     );
     return { ok: true };
   } catch (e) {
+    unstable_rethrow(e);
     return {
       ok: false,
       erro: e instanceof Error ? e.message : "Não foi possível concluir a ação.",
