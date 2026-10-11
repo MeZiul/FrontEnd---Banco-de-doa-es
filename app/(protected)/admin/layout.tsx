@@ -1,6 +1,7 @@
 import { exigirAdministradorAtivo } from "@/lib/admin-dashboard-server";
 import { unstable_rethrow } from "next/navigation";
 import { DashboardRefresh } from "@/components/admin/dashboard-refresh";
+import { AdminShell } from "@/components/admin/admin-shell";
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
 	try {
@@ -14,7 +15,5 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
 		</main>;
 	}
 
-	return children;
+  return <AdminShell>{children}</AdminShell>;
 }
-
-
