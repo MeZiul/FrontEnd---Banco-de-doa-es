@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ErroApi, fetchApi } from "@/lib/api";
 import { COOKIE_TOKEN } from "@/lib/auth-cookie";
+import { exigirVisitante } from "@/lib/auth-guest";
 import { destinoInterno, opcoesCookieSessao, validarCadastro, validarLogin } from "@/lib/auth-validation";
 
 export type ResultadoAuth = { erro: string };
@@ -16,6 +17,7 @@ function mensagemErro(erro: unknown, fallback: string): ResultadoAuth {
 }
 
 export async function cadastrar(entrada: unknown): Promise<ResultadoAuth> {
+  await exigirVisitante();
   const resultado = validarCadastro(entrada);
   if (resultado.erro !== undefined) return { erro: resultado.erro };
   try {
@@ -28,6 +30,7 @@ export async function cadastrar(entrada: unknown): Promise<ResultadoAuth> {
 }
 
 export async function entrar(entrada: unknown, destino: unknown): Promise<ResultadoAuth> {
+  await exigirVisitante();
   const resultado = validarLogin(entrada);
   if (resultado.erro !== undefined) return { erro: resultado.erro };
   const { email, senha, lembrar } = resultado.dados;
