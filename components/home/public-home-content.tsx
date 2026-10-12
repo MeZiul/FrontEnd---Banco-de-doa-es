@@ -13,10 +13,10 @@ export function PublicHomeContent({ items, feedUnavailable = false }: { items: I
       <section aria-labelledby="doacoes-recentes-titulo">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-blue-800">Compartilhadas pela comunidade</p>
-            <h2 id="doacoes-recentes-titulo" className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Doações recentes</h2>
+            <p className="text-sm font-semibold uppercase tracking-wide text-blue-800 dark:text-blue-300">Compartilhadas pela comunidade</p>
+            <h2 id="doacoes-recentes-titulo" className="mt-1 text-2xl font-bold tracking-tight text-slate-950 dark:text-slate-100 sm:text-3xl">Doações recentes</h2>
           </div>
-          <Link href="/busca" className="inline-flex min-h-10 items-center gap-2 self-start font-semibold text-blue-800 underline underline-offset-4 hover:text-blue-950 sm:self-auto">
+          <Link href="/busca" className="inline-flex min-h-10 items-center gap-2 self-start font-semibold text-blue-800 underline underline-offset-4 hover:text-blue-950 dark:text-blue-300 dark:hover:text-blue-200 sm:self-auto">
             Ver todas as doações <ArrowRight className="size-4" aria-hidden="true" />
           </Link>
         </div>

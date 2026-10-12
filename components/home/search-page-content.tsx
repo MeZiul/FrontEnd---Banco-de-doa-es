@@ -20,9 +20,9 @@ export function SearchPageContent({
   return (
     <div className="space-y-7">
       <header className="max-w-3xl">
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-800">Busca de doações</p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Encontre algo que faça diferença.</h1>
-        <p className="mt-3 text-slate-600">Pesquise pelo item e ajuste a categoria, condição ou localização para refinar os resultados.</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-blue-800 dark:text-blue-300">Busca de doações</p>
+        <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-950 dark:text-slate-100 sm:text-4xl">Encontre algo que faça diferença.</h1>
+        <p className="mt-3 text-slate-600 dark:text-slate-300">Pesquise pelo item e ajuste a categoria, condição ou localização para refinar os resultados.</p>
       </header>
 
       <DonationSearchForm key={urlBuscas(filtros)} filtros={filtros} categorias={categorias} erroCategorias={erroCategorias} />
@@ -36,10 +36,10 @@ export function SearchPageContent({
       ) : (
         <section aria-labelledby="busca-resultados-titulo">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
-            <h2 id="busca-resultados-titulo" className="text-lg font-semibold text-slate-950">
+            <h2 id="busca-resultados-titulo" className="text-lg font-semibold text-slate-950 dark:text-slate-100">
               {resultado.totalDocs} {resultado.totalDocs === 1 ? "doação encontrada" : "doações encontradas"}
             </h2>
-            {resultado.totalPages > 0 && <p className="text-sm text-slate-600">Página {resultado.page} de {resultado.totalPages}</p>}
+            {resultado.totalPages > 0 && <p className="text-sm text-slate-600 dark:text-slate-300">Página {resultado.page} de {resultado.totalPages}</p>}
           </div>
 
           {resultado.docs.length === 0 ? (
@@ -57,7 +57,7 @@ export function SearchPageContent({
           {(resultado.hasPrevPage || resultado.hasNextPage) && (
             <nav aria-label="Paginação dos resultados" className="mt-7 flex flex-wrap items-center justify-center gap-4 text-sm font-semibold">
               {resultado.hasPrevPage && resultado.prevPage && <Link href={urlBuscas(filtros, resultado.prevPage)} className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-blue-800 hover:bg-sky-50">Página anterior</Link>}
-              <span aria-current="page" className="text-slate-700">Página {resultado.page}</span>
+              <span aria-current="page" className="text-slate-700 dark:text-slate-300">Página {resultado.page}</span>
               {resultado.hasNextPage && resultado.nextPage && <Link href={urlBuscas(filtros, resultado.nextPage)} className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-blue-800 hover:bg-sky-50">Próxima página</Link>}
             </nav>
           )}

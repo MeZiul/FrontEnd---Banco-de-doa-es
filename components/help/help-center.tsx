@@ -30,9 +30,9 @@ export function HelpCenter() {
   return (
     <div className="space-y-8">
       <header className="max-w-3xl">
-        <p className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-blue-800"><CircleHelp className="size-4" aria-hidden="true" /> Central de ajuda</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Como podemos ajudar?</h1>
-        <p className="mt-3 text-slate-600">Orientações rápidas para encontrar, anunciar e combinar uma doação com cuidado.</p>
+        <p className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-blue-800 dark:text-blue-300"><CircleHelp className="size-4" aria-hidden="true" /> Central de ajuda</p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 dark:text-slate-100 sm:text-4xl">Como podemos ajudar?</h1>
+        <p className="mt-3 text-slate-600 dark:text-slate-300">Orientações rápidas para encontrar, anunciar e combinar uma doação com cuidado.</p>
       </header>
 
       <section aria-labelledby="perguntas-titulo" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
