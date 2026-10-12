@@ -26,6 +26,7 @@ function ambiente({
   itemStatus = "AGUARDANDO_CONFIRMACAO",
   interesseAceitoId = interesseId,
   falha = null,
+  falhaSomentePut = false,
 } = {}) {
   const chamadas = [];
   const revalidacoes = [];
@@ -50,7 +51,7 @@ function ambiente({
         getUsuarioLogado: async () => ({ _id: usuario, situacao }),
         fetchApiAutenticado: async (path, opcoes) => {
           chamadas.push({ path, opcoes });
-          if (falha) throw falha;
+          if (falha && (!falhaSomentePut || opcoes?.metodo === "PUT")) throw falha;
           if (path === `interesses/${interesseId}`) return {
             _id: interesseId,
             status: interesseStatus,
@@ -126,6 +127,17 @@ test("retorna erro de API recuperável e não expõe falha interna", async () =>
   const resultado = await interno.executar();
   assert.equal(resultado.sucesso, false);
   assert.equal(resultado.mensagem.includes("segredo interno"), false);
+});
+
+test("pede para verificar o estado antes de repetir se o timeout ocorrer na confirmação", async () => {
+  const timeout = Object.assign(new Error("timeout interno"), { name: "TimeoutError" });
+  const app = ambiente({ falha: timeout, falhaSomentePut: true });
+  const resultado = await app.executar();
+
+  assert.equal(resultado.sucesso, false);
+  assert.equal(resultado.mensagem, "Não conseguimos confirmar a resposta. Atualize a página para verificar o estado antes de repetir.");
+  assert.equal(app.chamadas.filter((chamada) => chamada.opcoes?.metodo === "PUT").length, 1);
+  assert.deepEqual(app.revalidacoes, []);
 });
 
 test("preserva o redirecionamento de sessão expirada em vez de tratá-lo como erro comum", async () => {

@@ -26,6 +26,10 @@ function referenciaId(referencia: Referencia) {
   return typeof referencia === "string" ? referencia : referencia?._id ?? null;
 }
 
+function ehTimeout(erro: unknown) {
+  return typeof erro === "object" && erro !== null && "name" in erro && erro.name === "TimeoutError";
+}
+
 function falha(erro: unknown): ResultadoRecebimento {
   unstable_rethrow(erro);
   return {
@@ -89,10 +93,17 @@ export async function confirmarRecebimento(
       throw new ErroFormulario("A doação não está aguardando confirmação de recebimento. Atualize a página.");
     }
 
-    await fetchApiAutenticado(`itemdoacao/${encodeURIComponent(itemId)}/confirmar-recebimento`, {
-      metodo: "PUT",
-      signal: AbortSignal.timeout(15000),
-    });
+    try {
+      await fetchApiAutenticado(`itemdoacao/${encodeURIComponent(itemId)}/confirmar-recebimento`, {
+        metodo: "PUT",
+        signal: AbortSignal.timeout(15000),
+      });
+    } catch (erro) {
+      if (ehTimeout(erro)) {
+        throw new ErroFormulario("Não conseguimos confirmar a resposta. Atualize a página para verificar o estado antes de repetir.");
+      }
+      throw erro;
+    }
 
     revalidarTelas(itemId);
     return { sucesso: true, mensagem: "Recebimento confirmado. A doação foi concluída." };
