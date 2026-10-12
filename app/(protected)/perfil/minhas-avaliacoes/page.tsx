@@ -1,134 +1,175 @@
-import { Star, Pencil, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { fetchApiAutenticado, getUsuarioLogado } from "@/lib/auth-server";
 import type { Paginado } from "@/types/api";
 import type { Avaliacao } from "@/types/avaliacao";
+import { AvaliacaoCard } from "@/components/perfil/avaliacao-card";
 
-// Regra do produto: o autor pode editar/remover a avaliação por até 30 dias
-const DIAS_PARA_EDITAR = 30;
+const LIMITE = 20;
 
-function diasDesde(data: string) {
-  return Math.floor((Date.now() - new Date(data).getTime()) / (1000 * 60 * 60 * 24));
+type Query = {
+  page?: string | string[];
+  feitas?: string | string[];
+  recebidas?: string | string[];
+};
+
+function parsePagina(valor: string | string[] | undefined) {
+  if (typeof valor !== "string" || !/^\d+$/.test(valor)) return 1;
+  const pagina = Number(valor);
+  return Number.isSafeInteger(pagina) && pagina > 0 ? pagina : 1;
 }
 
-function formatarTempo(dias: number) {
-  return dias === 0 ? "hoje" : `há ${dias} dia(s)`;
-}
-
-export default async function MinhasAvaliacoes() {
-  // GET /avaliacoes devolve as avaliações que o usuário fez e as que recebeu
-  const [usuario, { docs }] = await Promise.all([
-    getUsuarioLogado(),
-    fetchApiAutenticado<Paginado<Avaliacao>>("avaliacoes", { params: { limite: 100 } }),
-  ]);
-
-  const avaliacoes = docs.map((avaliacao) => {
-    const dias = diasDesde(avaliacao.data_avaliacao);
-    const feitaPorMim = avaliacao.avaliador_id._id === usuario._id;
-
-    return {
-      id: avaliacao._id,
-      autor: feitaPorMim ? `Você avaliou ${avaliacao.avaliado_id.nome}` : avaliacao.avaliador_id.nome,
-      estrelas: avaliacao.nota,
-      tempo: formatarTempo(dias),
-      texto: avaliacao.comentario,
-      item: avaliacao.item_id.titulo,
-      feitaPorMim,
-      editavel: feitaPorMim && dias <= DIAS_PARA_EDITAR,
-    };
+async function buscarPagina(
+  page: number,
+  filtro: { avaliador_id?: string; avaliado_id?: string } = {},
+): Promise<Paginado<Avaliacao>> {
+  return fetchApiAutenticado<Paginado<Avaliacao>>("avaliacoes", {
+    params: { ...filtro, page, limite: LIMITE },
+    signal: AbortSignal.timeout(10000),
   });
+}
 
+function paginaAtual(lista: Paginado<Avaliacao>, solicitada: number) {
+  return Math.min(solicitada, Math.max(1, lista.totalPages));
+}
+
+function cardProps(avaliacao: Avaliacao, usuarioId: string) {
+  const dias = Math.max(0, Math.floor((Date.now() - new Date(avaliacao.data_avaliacao).getTime()) / 86400000));
+  const feitaPorMim = avaliacao.avaliador_id._id === usuarioId;
+
+  return {
+    id: avaliacao._id,
+    autor: feitaPorMim ? `Você avaliou ${avaliacao.avaliado_id.nome}` : avaliacao.avaliador_id.nome,
+    estrelas: avaliacao.nota,
+    tempo: dias === 0 ? "hoje" : `há ${dias} dia(s)`,
+    texto: avaliacao.comentario,
+    item: avaliacao.item_id.titulo,
+    feitaPorMim,
+  };
+}
+
+function Cartoes({ docs, usuarioId }: { docs: Avaliacao[]; usuarioId: string }) {
+  return (
+    <div className="flex flex-col gap-4">
+      {docs.map((avaliacao) => (
+        <AvaliacaoCard key={avaliacao._id} {...cardProps(avaliacao, usuarioId)} />
+      ))}
+    </div>
+  );
+}
+
+function Paginacao({
+  lista,
+  anterior,
+  proxima,
+  rotulo,
+}: {
+  lista: Paginado<Avaliacao>;
+  anterior: string;
+  proxima: string;
+  rotulo: string;
+}) {
+  if (lista.totalPages <= 1) return null;
+
+  return (
+    <nav aria-label={rotulo} className="flex items-center justify-between gap-4 text-sm text-blue-700">
+      {lista.hasPrevPage ? <Link href={anterior}>Página anterior</Link> : <span />}
+      <span className="text-slate-500">Página {lista.page} de {Math.max(1, lista.totalPages)}</span>
+      {lista.hasNextPage ? <Link href={proxima}>Próxima página</Link> : <span />}
+    </nav>
+  );
+}
+
+function linkAdmin(feitas: number, recebidas: number) {
+  return `?${new URLSearchParams({ feitas: String(feitas), recebidas: String(recebidas) })}`;
+}
+
+export default async function MinhasAvaliacoes({
+  searchParams,
+}: {
+  searchParams: Promise<Query>;
+}) {
+  const query = await searchParams;
+  const usuario = await getUsuarioLogado();
   const media = usuario.media_avaliacoes.toLocaleString("pt-BR", {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
   });
 
+  if (usuario.perfil === "ADMINISTRADOR") {
+    const solicitadaFeitas = parsePagina(query.feitas);
+    const solicitadaRecebidas = parsePagina(query.recebidas);
+    const [feitasInicial, recebidasInicial] = await Promise.all([
+      buscarPagina(solicitadaFeitas, { avaliador_id: usuario._id }),
+      buscarPagina(solicitadaRecebidas, { avaliado_id: usuario._id }),
+    ]);
+    const pageFeitas = paginaAtual(feitasInicial, solicitadaFeitas);
+    const pageRecebidas = paginaAtual(recebidasInicial, solicitadaRecebidas);
+    const [feitas, recebidas] = await Promise.all([
+      pageFeitas === solicitadaFeitas ? feitasInicial : buscarPagina(pageFeitas, { avaliador_id: usuario._id }),
+      pageRecebidas === solicitadaRecebidas ? recebidasInicial : buscarPagina(pageRecebidas, { avaliado_id: usuario._id }),
+    ]);
+
+    return (
+      <div className="w-full">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-slate-900">Minhas Avaliações</h1>
+          <p className="mt-1 text-sm text-slate-500">Média {media} · {usuario.total_avaliacoes} avaliação(ões) recebida(s)</p>
+        </div>
+
+        <section aria-labelledby="avaliacoes-feitas" className="mb-8 space-y-4">
+          <h2 id="avaliacoes-feitas" className="text-lg font-semibold text-slate-900">Feitas por mim</h2>
+          {feitas.docs.length === 0
+            ? <p className="rounded-2xl border border-gray-100 bg-white p-5 text-sm text-gray-500 shadow-sm">Você ainda não fez avaliações.</p>
+            : <Cartoes docs={feitas.docs} usuarioId={usuario._id} />}
+          <Paginacao
+            lista={feitas}
+            rotulo="Paginação das avaliações feitas por mim"
+            anterior={linkAdmin(pageFeitas - 1, pageRecebidas)}
+            proxima={linkAdmin(pageFeitas + 1, pageRecebidas)}
+          />
+        </section>
+
+        <section aria-labelledby="avaliacoes-recebidas" className="space-y-4">
+          <h2 id="avaliacoes-recebidas" className="text-lg font-semibold text-slate-900">Recebidas por mim</h2>
+          {recebidas.docs.length === 0
+            ? <p className="rounded-2xl border border-gray-100 bg-white p-5 text-sm text-gray-500 shadow-sm">Você ainda não recebeu avaliações.</p>
+            : <Cartoes docs={recebidas.docs} usuarioId={usuario._id} />}
+          <Paginacao
+            lista={recebidas}
+            rotulo="Paginação das avaliações recebidas por mim"
+            anterior={linkAdmin(pageFeitas, pageRecebidas - 1)}
+            proxima={linkAdmin(pageFeitas, pageRecebidas + 1)}
+          />
+        </section>
+      </div>
+    );
+  }
+
+  const solicitada = parsePagina(query.page);
+  const listaInicial = await buscarPagina(solicitada);
+  const page = paginaAtual(listaInicial, solicitada);
+  const lista = page === solicitada ? listaInicial : await buscarPagina(page);
+
   return (
     <div className="w-full">
-      {/* Cabeçalho da Página */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Minhas Avaliações</h1>
-        <p className="text-slate-500 mt-1 text-sm">
-          Média {media} · {usuario.total_avaliacoes} avaliação(ões) recebida(s) · edição permitida por até {DIAS_PARA_EDITAR} dias
-        </p>
+        <p className="mt-1 text-sm text-slate-500">Média {media} · {usuario.total_avaliacoes} avaliação(ões) recebida(s)</p>
       </div>
 
-      {avaliacoes.length === 0 && (
+      {lista.docs.length === 0 && (
         <p className="rounded-2xl border border-gray-100 bg-white p-5 text-sm text-gray-500 shadow-sm">
-          Você ainda não fez nem recebeu avaliações.
+          {lista.totalDocs === 0 ? "Você ainda não fez nem recebeu avaliações." : "Nenhuma avaliação nesta página."}
         </p>
       )}
 
-      {/* Lista de Avaliações */}
-      <div className="flex flex-col gap-4">
-        {avaliacoes.map((avaliacao) => (
-          <div
-            key={avaliacao.id}
-            className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm"
-          >
-            {/* Informações do Autor e Estrelas */}
-            <div className="flex items-center gap-2 mb-2">
-              <span className="font-semibold text-gray-900">{avaliacao.autor}</span>
-              <div className="flex items-center gap-0.5 ml-1">
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <Star
-                    key={index}
-                    className={`h-4 w-4 ${
-                      index < avaliacao.estrelas
-                        ? "text-yellow-400 fill-yellow-400"
-                        : "text-gray-200 fill-gray-200"
-                    }`}
-                  />
-                ))}
-              </div>
-              <span className="text-gray-400 text-sm ml-1">· {avaliacao.tempo}</span>
-            </div>
-
-            {/* Texto da Avaliação */}
-            {avaliacao.texto && <p className="text-gray-700 mb-1">{avaliacao.texto}</p>}
-
-            {/* Referência do Item */}
-            <p className="text-sm text-gray-500 mb-4">
-              Sobre: {avaliacao.item}
-            </p>
-
-            {/* Botões de Ação (só o autor pode editar/remover) */}
-            {avaliacao.feitaPorMim && (
-              <div className="flex items-center gap-3">
-                <button
-                  disabled={!avaliacao.editavel}
-                  className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    avaliacao.editavel
-                      ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      : "bg-gray-50 text-gray-300 cursor-not-allowed"
-                  }`}
-                >
-                  <Pencil className="h-4 w-4" />
-                  Editar
-                </button>
-
-                <button
-                  disabled={!avaliacao.editavel}
-                  className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    avaliacao.editavel
-                      ? "bg-red-600 text-white hover:bg-red-700"
-                      : "bg-red-300 text-white cursor-not-allowed opacity-70"
-                  }`}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Remover
-                </button>
-
-                {/* Mensagem de bloqueio após 30 dias */}
-                {!avaliacao.editavel && (
-                  <span className="text-sm text-gray-500 ml-2">
-                    Janela de {DIAS_PARA_EDITAR} dias encerrada
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+      <Cartoes docs={lista.docs} usuarioId={usuario._id} />
+      <Paginacao
+        lista={lista}
+        rotulo="Paginação das avaliações"
+        anterior={`?page=${page - 1}`}
+        proxima={`?page=${page + 1}`}
+      />
     </div>
   );
 }

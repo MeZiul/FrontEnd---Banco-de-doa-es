@@ -24,6 +24,7 @@ export async function atualizarAvaliacao(
     await fetchApiAutenticado(`avaliacoes/${encodeURIComponent(id)}`, {
       metodo: "PUT",
       body: { nota: dados.nota, comentario: dados.comentario.trim() || null },
+      signal: AbortSignal.timeout(15000),
     });
   } catch (erro) {
     return { erro: mensagemDeErro(erro) };
@@ -36,7 +37,10 @@ export async function atualizarAvaliacao(
 // DELETE /avaliacoes/:id — a API só deixa o autor (ou admin) remover
 export async function removerAvaliacao(id: string): Promise<Resultado> {
   try {
-    await fetchApiAutenticado(`avaliacoes/${encodeURIComponent(id)}`, { metodo: "DELETE" });
+    await fetchApiAutenticado(`avaliacoes/${encodeURIComponent(id)}`, {
+      metodo: "DELETE",
+      signal: AbortSignal.timeout(15000),
+    });
   } catch (erro) {
     return { erro: mensagemDeErro(erro) };
   }

@@ -13,8 +13,6 @@ export type AvaliacaoCardProps = {
   texto: string | null;
   item: string;
   feitaPorMim: boolean;
-  editavel: boolean;
-  diasParaEditar: number;
 };
 
 export function AvaliacaoCard({
@@ -25,8 +23,6 @@ export function AvaliacaoCard({
   texto,
   item,
   feitaPorMim,
-  editavel,
-  diasParaEditar,
 }: AvaliacaoCardProps) {
   const [editando, setEditando] = useState(false);
   const [nota, setNota] = useState(estrelas);
@@ -79,6 +75,7 @@ export function AvaliacaoCard({
                 onClick={() => setNota(valor)}
                 disabled={pendente}
                 aria-label={`Nota ${valor}`}
+                aria-pressed={nota === valor}
                 className="rounded p-0.5 transition-transform hover:scale-110"
               >
                 <Star className={cn(classe, "h-5 w-5")} />
@@ -98,6 +95,8 @@ export function AvaliacaoCard({
           onChange={(e) => setComentario(e.target.value)}
           disabled={pendente}
           rows={3}
+          maxLength={2000}
+          aria-label="Comentário da avaliação"
           placeholder="Escreva um comentário (opcional)"
           className="mb-2 w-full resize-none rounded-xl border border-gray-200 px-3 py-2 text-gray-700 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
         />
@@ -110,7 +109,7 @@ export function AvaliacaoCard({
         Sobre: {item}
       </p>
 
-      {erro && <p className="mb-3 text-sm text-red-600">{erro}</p>}
+      {erro && <p role="alert" className="mb-3 text-sm text-red-600">{erro}</p>}
 
       {/* Botões de Ação (só o autor pode editar/remover) */}
       {feitaPorMim && (
@@ -118,6 +117,7 @@ export function AvaliacaoCard({
           {editando ? (
             <>
               <button
+                type="button"
                 onClick={salvar}
                 disabled={pendente}
                 className="flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700"
@@ -125,6 +125,7 @@ export function AvaliacaoCard({
                 {pendente ? "Salvando..." : "Salvar"}
               </button>
               <button
+                type="button"
                 onClick={() => setEditando(false)}
                 disabled={pendente}
                 className="flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -135,37 +136,25 @@ export function AvaliacaoCard({
           ) : (
             <>
               <button
+                type="button"
                 onClick={abrirEdicao}
-                disabled={!editavel || pendente}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  editavel
-                    ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    : "bg-gray-50 text-gray-300 cursor-not-allowed"
-                }`}
+                disabled={pendente}
+                className="flex items-center gap-2 rounded-full bg-gray-100 px-4 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
               >
                 <Pencil className="h-4 w-4" />
                 Editar
               </button>
 
               <button
+                type="button"
                 onClick={remover}
-                disabled={!editavel || pendente}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  editavel
-                    ? "bg-red-600 text-white hover:bg-red-700"
-                    : "bg-red-300 text-white cursor-not-allowed opacity-70"
-                }`}
+                disabled={pendente}
+                className="flex items-center gap-2 rounded-full bg-red-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-wait disabled:opacity-60"
               >
                 <Trash2 className="h-4 w-4" />
                 {pendente ? "Removendo..." : "Remover"}
               </button>
 
-              {/* Mensagem de bloqueio após 30 dias */}
-              {!editavel && (
-                <span className="text-sm text-gray-500 ml-2">
-                  Janela de {diasParaEditar} dias encerrada
-                </span>
-              )}
             </>
           )}
         </div>
