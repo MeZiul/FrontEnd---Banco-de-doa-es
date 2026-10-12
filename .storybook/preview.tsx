@@ -1,6 +1,7 @@
 import type { Preview } from '@storybook/nextjs-vite';
 import { useEffect, type ReactNode } from 'react';
 import '../app/globals.css';
+import './preview.css';
 
 function ThemeFrame({ theme, children }: { theme: string; children: ReactNode }) {
   useEffect(() => {
