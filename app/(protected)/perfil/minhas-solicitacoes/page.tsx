@@ -1,9 +1,13 @@
 import Link from "next/link";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { Clock, CheckCircle2, XCircle, Ban, User, Calendar, MapPin, Package } from "lucide-react";
-import { fetchApiAutenticado } from "@/lib/auth-server";
+import { fetchApiAutenticado, getUsuarioLogado } from "@/lib/auth-server";
 import { ConfirmarRecebimentoForm } from "@/components/perfil/confirmar-recebimento-form";
+import { FeedRetry } from "@/components/feed/feed-retry";
 import type { Paginado } from "@/types/api";
 import type { Solicitacao, StatusSolicitacao } from "@/types/solicitacao";
+
+const ITENS_POR_PAGINA = 20;
 
 // Texto, estilo e ícone da tag de cada status da API
 const statusInfo: Record<StatusSolicitacao, { label: string; className: string; Icon: typeof Clock }> = {
@@ -18,11 +22,43 @@ function formatarData(data: string) {
   return new Date(data).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-export default async function MinhasSolicitacoes() {
-  // GET /interesses devolve só as solicitações feitas pelo usuário logado
-  const { docs: solicitacoes } = await fetchApiAutenticado<Paginado<Solicitacao>>("interesses", {
-    params: { limit: 100 },
-  });
+function lerPagina(valor?: string) {
+  return valor && /^\d+$/.test(valor) && Number.isSafeInteger(Number(valor)) && Number(valor) > 0
+    ? Number(valor)
+    : 1;
+}
+
+export default async function MinhasSolicitacoes({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+  const query = await searchParams;
+  const page = lerPagina(query.page);
+  let resultado: Paginado<Solicitacao>;
+
+  try {
+    const usuario = await getUsuarioLogado();
+    resultado = await fetchApiAutenticado<Paginado<Solicitacao>>("interesses", {
+      params: { usuario_interessado_id: usuario._id, page, limit: ITENS_POR_PAGINA },
+      signal: AbortSignal.timeout(10000),
+    });
+  } catch (erro) {
+    unstable_rethrow(erro);
+    return (
+      <div className="w-full">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-slate-900">Minhas Solicitações</h1>
+          <p className="text-slate-500 mt-1">Doações nas quais você demonstrou interesse.</p>
+        </div>
+        <section role="alert" className="rounded-2xl border bg-white p-6">
+          <p>Não foi possível carregar suas solicitações.</p>
+          <FeedRetry />
+        </section>
+      </div>
+    );
+  }
+
+  if (page > Math.max(1, resultado.totalPages)) {
+    redirect(`/perfil/minhas-solicitacoes?page=${Math.max(1, resultado.totalPages)}`);
+  }
+  const { docs: solicitacoes } = resultado;
 
   return (
     <div className="w-full">
@@ -34,7 +70,7 @@ export default async function MinhasSolicitacoes() {
 
       {solicitacoes.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-500 shadow-sm">
-          Você ainda não solicitou nenhuma doação.
+          {resultado.totalDocs === 0 ? "Você ainda não solicitou nenhuma doação." : "Nenhuma solicitação nesta página."}
         </div>
       ) : (
         <div className="flex flex-col gap-4">
@@ -116,6 +152,14 @@ export default async function MinhasSolicitacoes() {
             );
           })}
         </div>
+      )}
+
+      {resultado.totalPages > 1 && (
+        <nav aria-label="Paginação das solicitações" className="mt-6 flex items-center justify-between gap-4 text-sm text-blue-700">
+          {resultado.hasPrevPage ? <Link href={`?page=${resultado.page - 1}`}>Página anterior</Link> : <span />}
+          <span aria-current="page">Página {resultado.page} de {resultado.totalPages}</span>
+          {resultado.hasNextPage ? <Link href={`?page=${resultado.page + 1}`}>Próxima página</Link> : <span />}
+        </nav>
       )}
     </div>
   );
