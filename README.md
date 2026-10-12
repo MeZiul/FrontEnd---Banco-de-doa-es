@@ -1,93 +1,63 @@
-# FrontEnd - Banco de doações
+# Doaí — frontend do Banco de Doações
 
+Aplicação acadêmica em Next.js 16, React 19 e Tailwind CSS 4. A API separada usa Express, Better Auth, Prisma e PostgreSQL. O frontend mantém a identidade visual azul da equipe; Storybook reutiliza os componentes da aplicação.
 
+## Executar localmente
 
-## Getting started
+Use Node.js 24 e npm, como no pipeline. Instale com `npm ci`, configure `NEXT_PUBLIC_API_URL` em `.env.local` conforme o endereço da API escolhida e execute `npm run dev`. A aplicação abre em `http://localhost:5173`.
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+`.env.example` documenta a configuração. Não versione `.env.local`, tokens ou senhas. A URL de API é configuração pública, incorporada na build; deve ser definida antes de compilar. A configuração de desenvolvimento `DEV_LOGIN_EMAIL`/`DEV_LOGIN_SENHA` é opcional e não deve ser habilitada em Preview/Production ou testes de visitante.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+O frontend não inicia o banco nem a API. Para desenvolvimento isolado, prepare esses serviços pelo repositório backend. Usar a API remota significa acessar dados reais: não execute seeds ou jornadas destrutivas de apresentação nela.
 
-## Add your files
+## Jornada e rotas
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+| Rota | Comportamento |
+| --- | --- |
+| `/` | Início, busca e até quatro doações recentes da API. |
+| `/busca` | Resultados, filtros de categoria/condição/localização/ordenação e paginação. |
+| `/doacoes/[id]` | Anúncio completo e ações permitidas pela sessão. |
+| `/ajuda` | Orientações, perguntas frequentes e acesso ao registro de problemas. |
+| `/termos`, `/privacidade` | Documentos públicos com conteúdo acadêmico compatível com a implementação. |
+| `/login`, `/cadastro` | Visitantes e sessões inválidas/expiradas; sessão válida redireciona ao início. |
+| `/perfil` e páginas internas | Perfil, anúncios, solicitações, avaliações e notificações da conta. |
+| `/admin/*` | Administração, denúncias, métricas e auditoria com autorização da API. |
 
+URLs antigas de busca na raiz redirecionam para `/busca`, preservando os filtros. Os cards públicos expandem detalhes por mouse ou teclado, respeitando movimento reduzido. Estados vazios, indisponibilidade e nova tentativa são distintos.
+
+O link de problema técnico na ajuda usa o GitLab e exige acesso ao projeto. Não existe um canal anônimo próprio de suporte. Denúncias de item/usuário são uma funcionalidade diferente. Os documentos acadêmicos não implicam aprovação jurídica.
+
+## Autenticação e contrato
+
+Server Actions usam a fachada de domínio `/auth/login` e `/usuario`; o token opaco fica em cookie HttpOnly e é encaminhado à API pelo servidor. Os endpoints nativos do Better Auth não substituem as políticas do projeto. Sessões válidas são verificadas também antes de submeter login/cadastro em abas antigas; erros de infraestrutura mostram recuperação e não são tratados como expiração.
+
+As telas administrativas mantêm `pagina` no estado da interface e enviam `page`/`limit` na consulta HTTP. Auditoria aceita alvos de usuário, item, denúncia ou removidos; o texto livre não permite inferir sozinho a medida aplicada pelo backend.
+
+## Verificar
+
+```text
+node --test tests/*.test.mjs
+npm run lint
+npm run build
 ```
-cd existing_repo
-git remote add origin https://gitlab.fslab.dev/f-brica-de-software-i-2026-1/banco-de-doa-es/frontend-banco-de-doacoes.git
-git branch -M main
-git push -uf origin main
+
+A CI executa esses checks. Os testes de contrato não substituem validação da API/banco reais. Cypress usa `http://localhost:5173`; os cenários que criam dados precisam de ambiente próprio e contas de teste, nunca de coleção destrutiva na produção.
+
+## Storybook
+
+```text
+npm run storybook
+npm run build-storybook
 ```
 
-## Integrate with your tools
+O modo de desenvolvimento abre em `http://localhost:6006`. A build gera `storybook-static/` com HTML, JavaScript e CSS, para servir por HTTP. Histórias incluem início, busca, cartões expansíveis, ajuda, termos e privacidade, exemplos realistas, vazio e erros; essas fixtures não são inseridas na API. Há seletores de tema/viewport e addon de acessibilidade; a existência do addon não equivale a conformidade WCAG comprovada.
 
-* [Set up project integrations](https://gitlab.fslab.dev/f-brica-de-software-i-2026-1/banco-de-doa-es/frontend-banco-de-doacoes/-/settings/integrations)
+## Publicação
 
-## Collaborate with your team
+`.gitlab-ci.yml` valida pushes e MRs. Um push na `dev` protegida publica **Preview** com target explícito. Um push na `main` protegida usa **Production**, quando essa branch contiver o pipeline. A missão atual não autoriza integrar `dev` na `main`.
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+`VERCEL_TOKEN` é configurado pelo responsável no GitLab como masked/protected/hidden, com escopos separados `preview` e `production`. IDs públicos do projeto estão no pipeline; o valor do token nunca deve ser colocado no repositório. Preview usa a API remota e não oferece um banco isolado. Sucesso da build e disponibilidade de Preview não comprovam atualização do domínio Production.
 
-## Test and Deploy
+## Limitações conhecidas
 
-Use the built-in continuous integration in GitLab.
-
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+Há alertas residuais de dependências acompanhados nas issues. Parte dos testes de navegador usa API sintética para estados raros; envio real de e-mail, operação Docker e regras de exposição do banco exigem evidência própria. A fonte Figma é referência funcional; o design aplicado e os componentes atuais prevalecem. Preserve responsáveis, telas e branches dos colegas ao complementar integrações.
