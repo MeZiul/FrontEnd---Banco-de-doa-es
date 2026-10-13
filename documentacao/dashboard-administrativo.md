@@ -22,12 +22,3 @@ Os seis indicadores usam dez consultas independentes e paralelas: não constitue
 Contagem válida zero é exibida como 0. Falha de rede, timeout, resposta incompleta ou totalDocs inválido aparece como Indisponível, preservando as demais métricas e oferecendo nova consulta. Se todas as contagens forem zero, há mensagem de vazio. Loading usa skeleton sem valores inventados. Falhas gerais da página têm boundary administrativo com retry() conforme Next vigente. Falha ao verificar acesso no layout fecha o conteúdo administrativo e mostra feedback com nova consulta; redirecionamentos do Next são preservados.
 
 Validação automatizada: `node --test tests/*.test.mjs`, `npm run lint`, `npm run build`. O teste de métricas verifica contagem acima de uma página, filtros, DTO mínimo, zero, falhas parciais, resposta inválida e revogação de acesso. QA de navegador deve comparar as contagens com as respostas reais da API/COUNT PostgreSQL, verificar usuário comum e administrador, revogar a função e repetir a consulta, conferir mobile e injetar falha local para provar retry. Sessões de fixture local não são prova de um novo login nem de produção.
-
-## Evidência local em 2026-10-10
-
-- Testes Node: 54 aprovados, incluindo falha rápida em uma parcela seguida de revogação de acesso em outra. Build e TypeScript aprovados. Lint sem erros, com três avisos preexistentes nas páginas administrativas de gestão.
-- Edge headless: seis contagens iguais ao COUNT do PostgreSQL isolado, incluindo itens disponíveis, doados e cancelados criados como fixtures. Desktop 1440 px, mobile 390 px sem overflow, foco do botão por teclado e renderização do dashboard no tema escuro verificados.
-- Loading confirmado durante consulta real com atraso controlado. Falha 503 e timeout locais preservam as outras contagens; retry refaz consulta real. Vazio foi validado com resposta sintética explicitamente identificada.
-- Anônimo, usuário comum, administrador suspenso, função revogada e sessão expirada não recebem indicadores. Suspensão/role/expiração foram alteradas somente nas fixtures próprias do banco local.
-- Nenhum pageerror, erro de console ou recurso HTTP com falha no navegador durante a rodada final. Injeções de erro da API foram exclusivamente locais e do lado servidor.
-- Fixtures removidas no encerramento. Script, capturas e resultado JSON ficam no diretório local de evidências da tarefa, fora do Git. Produção, implantação e novo login não foram validados por esta rodada.

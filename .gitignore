@@ -45,3 +45,10 @@ next-env.d.ts
 
 # Catálogo visual gerado
 /storybook-static/
+
+# Instruções e acompanhamento privados dos agentes
+/AGENTS.md
+/CLAUDE.md
+/.ai-memory/
+/.local-preview/
+/outputs/
