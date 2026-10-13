@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ErroApi, fetchApi } from "@/lib/api";
-import { getToken } from "@/lib/auth-server";
+import { getToken, validarSessaoNativa } from "@/lib/auth-server";
 import { ID_DOACAO } from "@/lib/doacao-validation";
 import { fotoFeed } from "@/lib/feed";
 import { FeedPhoto } from "@/components/feed/feed-photo";
@@ -27,8 +27,13 @@ export default async function DetalhesDoacao({ params }: { params: Promise<{ id:
   let usuario: { _id: string; situacao: string } | null = null;
   let falhaSessao = false;
   if (token) {
-    try { usuario = await fetchApi("perfil", { token, signal: AbortSignal.timeout(10000) }); }
-    catch (erro) { falhaSessao = !(erro instanceof ErroApi && [401, 498].includes(erro.status)); }
+    try {
+      if (await validarSessaoNativa(token)) {
+        usuario = await fetchApi("perfil", { token, signal: AbortSignal.timeout(10000) });
+      }
+    } catch (erro) {
+      falhaSessao = !(erro instanceof ErroApi && [401, 498].includes(erro.status));
+    }
   }
   const proprio = usuario?._id === item.usuario_id?._id;
   let podeAvaliar = false;

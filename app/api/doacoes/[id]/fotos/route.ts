@@ -1,6 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { ErroApi, fetchApi } from "@/lib/api";
-import { getToken } from "@/lib/auth-server";
+import { getToken, validarSessaoNativa } from "@/lib/auth-server";
 import { ErroDoacao, ID_DOACAO, MAX_FOTO, validarFotos } from "@/lib/doacao-validation";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -22,6 +22,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const reader = request.body?.getReader();
   if (!reader) return Response.json({ mensagem: "Envie uma foto." }, { status: 400 });
   try {
+    if (!(await validarSessaoNativa(token))) {
+      return Response.json({ mensagem: "Entre novamente para enviar fotos." }, { status: 401 });
+    }
     const usuario = await fetchApi<{ situacao: string }>("perfil", { token, signal: AbortSignal.timeout(10000) });
     if (usuario.situacao !== "ATIVO") return Response.json({ mensagem: "Sua conta precisa estar ativa." }, { status: 403 });
     const chunks: Uint8Array[] = [];

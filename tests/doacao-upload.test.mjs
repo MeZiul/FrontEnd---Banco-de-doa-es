@@ -5,8 +5,8 @@ import vm from "node:vm";
 import ts from "typescript";
 
 const id = "20000000-0000-0000-0000-000000000001";
-function ambiente({ token = "sessao-sintetica", situacao = "ATIVO" } = {}) {
-  const chamadas = [];
+function ambiente({ token = "sessao-sintetica", situacao = "ATIVO", sessionValid = true } = {}) {
+  const chamadas = [], chamadasPerfil = [], sessoes = [];
   function modulo(path, require) {
     const source = readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
     const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
@@ -24,12 +24,15 @@ function ambiente({ token = "sessao-sintetica", situacao = "ATIVO" } = {}) {
   class ErroApi extends Error {}
   const route = modulo("app/api/doacoes/[id]/fotos/route.ts", name => {
     if (name === "next/cache") return { revalidatePath() {} };
-    if (name === "@/lib/api") return { ErroApi, fetchApi: async () => ({ situacao }) };
-    if (name === "@/lib/auth-server") return { getToken: async () => token };
+    if (name === "@/lib/api") return { ErroApi, fetchApi: async path => { chamadasPerfil.push(path); return { situacao }; } };
+    if (name === "@/lib/auth-server") return {
+      getToken: async () => token,
+      validarSessaoNativa: async value => { sessoes.push(value); return sessionValid; },
+    };
     if (name === "@/lib/doacao-validation") return validation;
     throw new Error(name);
   });
-  return { executar: request => route.POST(request, { params: Promise.resolve({ id }) }), chamadas };
+  return { executar: request => route.POST(request, { params: Promise.resolve({ id }) }), chamadas, chamadasPerfil, sessoes };
 }
 function pedido({ origin = "http://127.0.0.1:5182", file = new File(["imagem"], "qa.png", { type: "image/png" }), extra = false } = {}) {
   const body = new FormData(); body.append("fotos", file); if (extra) body.append("usuario_id", "outro");
@@ -44,11 +47,13 @@ test("Host original permite navegador127 apesar do URL localhost normalizado pel
   const app = ambiente(); const response = await app.executar(pedido());
   assert.equal(response.status, 200); assert.equal((await response.json()).sucesso, true);
   assert.equal(app.chamadas.length, 1);
+  assert.deepEqual(app.sessoes, ["sessao-sintetica"]);
+  assert.deepEqual(app.chamadasPerfil, ["perfil"]);
   assert.equal(app.chamadas[0].options.headers.Authorization, "Bearer sessao-sintetica");
   assert.equal(app.chamadas[0].options.body.getAll("fotos").length, 1);
 });
 test("sessão ausente ou conta inativa bloqueia envio à API de imagens", async () => {
-  for (const options of [{ token: undefined }, { situacao: "SUSPENSO" }]) {
+  for (const options of [{ token: undefined }, { situacao: "SUSPENSO" }, { sessionValid: false }]) {
     const app = ambiente(options.token === undefined && Object.hasOwn(options, "token") ? { token: null } : options);
     assert.equal((await app.executar(pedido())).status, options.situacao ? 403 : 401); assert.equal(app.chamadas.length, 0);
   }
