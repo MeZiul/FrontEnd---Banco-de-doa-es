@@ -3,6 +3,10 @@ import { API_LOCAL, criarContaSintetica } from "../support/conta-sintetica";
 describe("Login", () => {
   beforeEach(() => {
     cy.visit("/login");
+    // Espera o React "assumir" o formulário antes de digitar (no `next dev` isso demora).
+    cy.get('[data-test="credencialLogin"]').should(($campo) => {
+      expect(Object.keys($campo[0]).some((chave) => chave.startsWith("__reactProps"))).to.equal(true);
+    });
   });
 
   it("exibe a tela de login", () => {
@@ -20,7 +24,8 @@ describe("Login", () => {
     cy.get('[data-test="senhaLogin"]').type(conta.senha, { log: false });
     cy.get('[data-test="buttonEntrar"]').click();
 
-    cy.url().should("include", "/itens-doacao");
+    // Sem ?redirect= na URL, o login leva para a página inicial.
+    cy.location("pathname", { timeout: 15000 }).should("eq", "/");
     cy.getCookie("doai_token").should("exist");
   });
 });
