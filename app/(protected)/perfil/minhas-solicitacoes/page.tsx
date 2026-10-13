@@ -4,10 +4,11 @@ import { Clock, CheckCircle2, XCircle, Ban, User, Calendar, MapPin, Package } fr
 import { fetchApiAutenticado, getUsuarioLogado } from "@/lib/auth-server";
 import { ConfirmarRecebimentoForm } from "@/components/perfil/confirmar-recebimento-form";
 import { FeedRetry } from "@/components/feed/feed-retry";
+import { PaginacaoLinks } from "@/components/shared/paginacao-links";
 import type { Paginado } from "@/types/api";
 import type { Solicitacao, StatusSolicitacao } from "@/types/solicitacao";
 
-const ITENS_POR_PAGINA = 20;
+const ITENS_POR_PAGINA = 5;
 
 // Texto, estilo e ícone da tag de cada status da API
 const statusInfo: Record<StatusSolicitacao, { label: string; className: string; Icon: typeof Clock }> = {
@@ -154,12 +155,19 @@ export default async function MinhasSolicitacoes({ searchParams }: { searchParam
         </div>
       )}
 
-      {resultado.totalPages > 1 && (
-        <nav aria-label="Paginação das solicitações" className="mt-6 flex items-center justify-between gap-4 text-sm text-blue-700">
-          {resultado.hasPrevPage ? <Link href={`?page=${resultado.page - 1}`}>Página anterior</Link> : <span />}
-          <span aria-current="page">Página {resultado.page} de {resultado.totalPages}</span>
-          {resultado.hasNextPage ? <Link href={`?page=${resultado.page + 1}`}>Próxima página</Link> : <span />}
-        </nav>
+      {resultado.totalDocs > 0 && (
+        <div className="mt-6 flex flex-col items-center gap-3 border-t border-gray-200 pt-4">
+          <p className="text-sm text-gray-500">
+            Mostrando {(resultado.page - 1) * ITENS_POR_PAGINA + 1}–{(resultado.page - 1) * ITENS_POR_PAGINA + solicitacoes.length} de {resultado.totalDocs}{" "}
+            {resultado.totalDocs === 1 ? "solicitação" : "solicitações"}
+          </p>
+          <PaginacaoLinks
+            pagina={resultado.page}
+            totalPaginas={resultado.totalPages}
+            caminho="/perfil/minhas-solicitacoes"
+            rotulo="Paginação das solicitações"
+          />
+        </div>
       )}
     </div>
   );
