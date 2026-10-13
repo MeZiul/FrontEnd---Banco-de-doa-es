@@ -13,7 +13,10 @@ export default async function BuscarDoacoes({ searchParams }: {
   const resultado = itens.status === "fulfilled" ? itens.value : null;
 
   return (
-    <PublicSiteShell>
+    <PublicSiteShell
+      exploreSidebar
+      categorias={categorias.status === "fulfilled" ? categorias.value : []}
+    >
       <SearchPageContent
         filtros={filtros}
         resultado={resultado}

@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import type { CategoriaFeed } from "@/types/feed"
 import {
   Apple,
   Armchair,
@@ -25,61 +26,92 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
 
-const icons: Record<string, typeof Apple> = {
-  Apple,
-  Shirt,
-  Armchair,
-  Refrigerator,
-  BookOpen,
-  ToyBrick,
-  Sparkles,
-  Package,
-}
-
-const categories = [
-  { slug: "alimentos", label: "Alimentos", icon: "Apple" },
-  { slug: "roupas", label: "Roupas", icon: "Shirt" },
-  { slug: "moveis", label: "Móveis", icon: "Armchair" },
-  { slug: "eletrodomesticos", label: "Eletrodomésticos", icon: "Refrigerator" },
-  { slug: "livros-e-estudos", label: "Livros e Estudos", icon: "BookOpen" },
-  { slug: "brinquedos", label: "Brinquedos", icon: "ToyBrick" },
-  { slug: "higiene", label: "Higiene", icon: "Sparkles" },
-  { slug: "outros", label: "Outros", icon: "Package" },
-]
-
 const nav = [
-  { href: "/", label: "Explorar tudo", icon: Compass },
+  { href: "/busca", label: "Explorar tudo", icon: Compass },
   { href: "/perfil", label: "Sua conta", icon: UserRound },
 ]
 
-export function AppSidebar() {
+const defaultCategories = [
+  "Alimentos",
+  "Roupas",
+  "Móveis",
+  "Eletrodomésticos",
+  "Livros e Estudos",
+  "Brinquedos",
+  "Higiene",
+  "Outros",
+]
+
+function iconForCategory(name: string) {
+  const normalized = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR")
+  if (normalized.includes("alimento")) return Apple
+  if (normalized.includes("roup")) return Shirt
+  if (normalized.includes("move")) return Armchair
+  if (normalized.includes("eletrodom")) return Refrigerator
+  if (normalized.includes("livr") || normalized.includes("estud")) return BookOpen
+  if (normalized.includes("brinqued")) return ToyBrick
+  if (normalized.includes("higiene")) return Sparkles
+  return Package
+}
+
+function categoryHref(id: string) {
+  const params = new URLSearchParams({ categoria_id: id })
+  return `/busca?${params.toString()}`
+}
+
+type AppSidebarProps = {
+  categorias?: CategoriaFeed[]
+  className?: string
+  locationIllustrative?: boolean
+}
+
+export function AppSidebar({ categorias, className, locationIllustrative = false }: AppSidebarProps) {
   const pathname = usePathname()
+  const { setOpenMobile } = useSidebar()
+  const closeMobile = () => setOpenMobile(false)
+  const usesDefaultCategories = categorias === undefined
+  const categoryOptions = usesDefaultCategories
+    ? defaultCategories.map(nome => ({ nome, _id: undefined }))
+    : categorias
 
   return (
-    <Sidebar variant="floating" collapsible="offcanvas" className="border-none">
+    <Sidebar
+      variant="floating"
+      collapsible="offcanvas"
+      className={cn("border-none", className)}
+    >
       <SidebarHeader className="gap-6 px-4 pt-4">
         {/* Busca */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <form action="/busca" method="get" role="search" aria-label="Buscar doações" className="relative">
+          <label htmlFor="busca-lateral" className="sr-only">Buscar doações</label>
+          <Search aria-hidden="true" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
-            type="text"
+            id="busca-lateral"
+            name="busca"
+            type="search"
+            maxLength={200}
             placeholder="Buscar doações"
             className="h-10 w-full rounded-full border border-border bg-background pl-10 pr-4 text-sm outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20"
           />
-        </div>
+          <button type="submit" className="sr-only">Buscar</button>
+        </form>
 
         {/* Navegação principal */}
         <div className="space-y-1">
           {nav.map(({ href, label, icon: Icon }) => {
-            const isActive = pathname === href
+            const isActive = href === "/busca"
+              ? pathname === "/" || pathname.startsWith("/busca")
+              : pathname === href || pathname.startsWith(`${href}/`)
             return (
               <Link
                 key={href}
                 href={href}
+                onClick={closeMobile}
                 className={cn(
                   "flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors hover:bg-accent",
                   isActive && "bg-primary/10 text-primary hover:bg-primary/10"
@@ -93,10 +125,10 @@ export function AppSidebar() {
         </div>
 
         {/* Botão de doação */}
-        <button className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-yellow-400 text-sm font-semibold text-gray-900 transition-colors hover:bg-yellow-500">
-          <Plus className="h-4 w-4" />
+        <Link href="/doacoes/nova" onClick={closeMobile} className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-yellow-400 text-sm font-semibold text-gray-900 transition-colors hover:bg-yellow-500">
+          <Plus aria-hidden="true" className="h-4 w-4" />
           Faça uma doação
-        </button>
+        </Link>
       </SidebarHeader>
 
       <SidebarContent className="gap-6 px-4 pb-4">
@@ -111,9 +143,16 @@ export function AppSidebar() {
               <span className="min-w-0 truncate">Vilhena - RO</span>
             </div>
             <div className="px-1">
-              <Slider defaultValue={[50]} max={100} step={1} className="py-1" />
+              <Slider
+                aria-label={locationIllustrative ? "Raio ilustrativo da busca" : "Raio da busca"}
+                disabled={locationIllustrative}
+                defaultValue={[50]}
+                max={100}
+                step={1}
+                className="py-1"
+              />
               <span className="mt-1 block text-xs text-muted-foreground">
-                Raio de 50 km
+                {locationIllustrative ? "Raio ilustrativo de 50 km" : "Raio de 50 km"}
               </span>
             </div>
           </SidebarGroupContent>
@@ -126,16 +165,17 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <ul className="space-y-1">
-              {categories.map((c) => {
-                const Icon = icons[c.icon] ?? Package
+              {categoryOptions.map((categoria) => {
+                const Icon = iconForCategory(categoria.nome)
                 return (
-                  <li key={c.slug}>
+                  <li key={categoria._id ?? categoria.nome}>
                     <Link
-                      href="/"
+                      href={categoria._id ? categoryHref(categoria._id) : usesDefaultCategories ? "/" : "/busca"}
+                      onClick={closeMobile}
                       className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors hover:bg-accent"
                     >
-                      <Icon className="size-4 shrink-0" />
-                      <span className="min-w-0 truncate">{c.label}</span>
+                      <Icon aria-hidden="true" className="size-4 shrink-0" />
+                      <span className="min-w-0 truncate">{categoria.nome}</span>
                     </Link>
                   </li>
                 )
