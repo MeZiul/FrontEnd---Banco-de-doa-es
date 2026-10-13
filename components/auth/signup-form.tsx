@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { UfSelect } from "@/components/shared/uf-select"
+import { CidadeSelect } from "@/components/shared/cidade-select"
+import { CampoSenha } from "@/components/shared/campo-senha"
+import { mascararCpf, mascararTelefone } from "@/lib/mascaras"
 import { useState, useTransition } from "react"
 import { cadastrar as cadastrarConta } from "@/app/(auth)/actions"
 import { unstable_rethrow } from "next/navigation"
@@ -33,10 +36,15 @@ export function SignupForm({
   const [carregando, iniciarCadastro] = useTransition()
 
   function atualizarCampo(campo: string, valor: string | boolean) {
-    setDados({
-      ...dados,
+    setDados((atual) => ({
+      ...atual,
       [campo]: valor,
-    })
+    }))
+  }
+
+  // Trocar de estado limpa a cidade (a lista de cidades muda junto).
+  function mudarUf(uf: string) {
+    setDados((atual) => ({ ...atual, uf, cidade: atual.uf === uf ? atual.cidade : "" }))
   }
 
 
@@ -101,11 +109,14 @@ export function SignupForm({
             <Input data-test="cpfCadastro"
               id="cpf"
               type="text"
+              inputMode="numeric"
+              autoComplete="off"
               placeholder="000.000.000-00"
+              maxLength={14}
               required
               className="bg-background"
               value={dados.cpf}
-              onChange={(e) => atualizarCampo("cpf", e.target.value)}
+              onChange={(e) => atualizarCampo("cpf", mascararCpf(e.target.value))}
             />
           </Field>
 
@@ -113,43 +124,45 @@ export function SignupForm({
             <FieldLabel htmlFor="telefone">Telefone</FieldLabel>
             <Input data-test="telefoneCadastro"
               id="telefone"
-              type="text"
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel-national"
               placeholder="(00) 00000-0000"
+              maxLength={15}
               required
               className="bg-background"
               value={dados.telefone}
-              onChange={(e) => atualizarCampo("telefone", e.target.value)}
+              onChange={(e) => atualizarCampo("telefone", mascararTelefone(e.target.value))}
             />
           </Field>
         </div>
+        {/* A UF vem antes: a lista de cidades depende do estado escolhido. */}
         <div className="flex gap-3">
-          <Field className="flex-1">
-            <FieldLabel htmlFor="cidade">Cidade</FieldLabel>
-            <Input data-test="cidadeCadastro"
-              id="cidade"
-              type="text"
-              placeholder="Vilhena"
-              required
-              className="bg-background"
-              value={dados.cidade}
-              onChange={(e) => atualizarCampo("cidade", e.target.value)}
-            />
-          </Field>
-
           <Field className="w-20">
             <FieldLabel htmlFor="estado">UF</FieldLabel>
             <UfSelect
               id="estado"
               value={dados.uf}
               dataTest="ufCadastro"
-              onValueChange={(valor) => atualizarCampo("uf", valor)} />
+              onValueChange={mudarUf} />
+          </Field>
+
+          <Field className="flex-1">
+            <FieldLabel htmlFor="cidade">Cidade</FieldLabel>
+            <CidadeSelect
+              id="cidade"
+              uf={dados.uf}
+              value={dados.cidade}
+              dataTest="cidadeCadastro"
+              onValueChange={(valor) => atualizarCampo("cidade", valor)}
+            />
           </Field>
         </div>
         <Field>
           <FieldLabel htmlFor="password">Senha</FieldLabel>
-          <Input data-test="senhaCadastro"
+          <CampoSenha data-test="senhaCadastro"
             id="password"
-            type="password"
+            autoComplete="new-password"
             required
             className="bg-background"
             value={dados.senha}
@@ -161,9 +174,9 @@ export function SignupForm({
         </Field>
         <Field>
           <FieldLabel htmlFor="confirm-password">Confirmar Senha</FieldLabel>
-          <Input data-test="confirmarSenhaCadastro"
+          <CampoSenha data-test="confirmarSenhaCadastro"
             id="confirm-password"
-            type="password"
+            autoComplete="new-password"
             required
             className="bg-background"
             value={dados.confirmarSenha}
