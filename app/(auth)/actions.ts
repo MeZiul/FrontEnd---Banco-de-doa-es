@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { ErroApi, fetchApi } from "@/lib/api";
 import { COOKIE_TOKEN } from "@/lib/auth-cookie";
 import { exigirVisitante } from "@/lib/auth-guest";
+import { autenticarComEmail } from "@/lib/auth-native-client";
 import { destinoInterno, opcoesCookieSessao, validarCadastro, validarLogin } from "@/lib/auth-validation";
 
 export type ResultadoAuth = { erro: string };
@@ -14,6 +15,20 @@ function mensagemErro(erro: unknown, fallback: string): ResultadoAuth {
     return { erro: erro.message };
   }
   return { erro: fallback };
+}
+
+function mensagemErroLoginNativo(status: number | undefined): ResultadoAuth {
+  if (status === 400 || status === 401) return { erro: "E-mail ou senha inválidos." };
+  if (status === 403) return { erro: "Não foi possível entrar nesta conta. Verifique os dados e tente novamente." };
+  if (status === 429) return { erro: "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente." };
+  return { erro: "Não foi possível realizar o login. Tente novamente." };
+}
+
+function temSessaoNativa(valor: unknown): valor is { token: string; user: Record<string, unknown> } {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) return false;
+  const sessao = valor as { token?: unknown; user?: unknown };
+  return typeof sessao.token === "string" && sessao.token.length > 0 &&
+    typeof sessao.user === "object" && sessao.user !== null && !Array.isArray(sessao.user);
 }
 
 export async function cadastrar(entrada: unknown): Promise<ResultadoAuth> {
@@ -34,18 +49,17 @@ export async function entrar(entrada: unknown, destino: unknown): Promise<Result
   const resultado = validarLogin(entrada);
   if (resultado.erro !== undefined) return { erro: resultado.erro };
   const { email, senha, lembrar } = resultado.dados;
-  let token: string;
+  let resposta: Awaited<ReturnType<typeof autenticarComEmail>>;
   try {
-    const resposta = await fetchApi<{ token: string }>("auth/login", {
-      metodo: "POST", body: { email, senha }, signal: AbortSignal.timeout(10000),
-    });
-    if (!resposta || typeof resposta.token !== "string" || !resposta.token) {
-      return { erro: "A API não retornou uma sessão válida. Tente novamente." };
-    }
-    token = resposta.token;
+    resposta = await autenticarComEmail(email, senha, lembrar);
   } catch (erro) {
     return mensagemErro(erro, "Não foi possível realizar o login. Tente novamente.");
   }
+
+  if (resposta.error) return mensagemErroLoginNativo(resposta.error.status);
+  if (!temSessaoNativa(resposta.data)) return { erro: "A API não retornou uma sessão válida. Tente novamente." };
+
+  const { token } = resposta.data;
   (await cookies()).set(COOKIE_TOKEN, token, opcoesCookieSessao(lembrar, process.env.NODE_ENV === "production"));
   redirect(destinoInterno(destino));
 }
