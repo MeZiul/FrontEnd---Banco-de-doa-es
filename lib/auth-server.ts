@@ -2,10 +2,15 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ErroApi, fetchApi } from "@/lib/api";
 import { COOKIE_TOKEN, loginDevAtivo } from "@/lib/auth-cookie";
-import { autenticarComEmail, consultarSessaoNativa } from "@/lib/auth-native-client";
+import {
+  autenticarComEmail,
+  consultarSessaoNativa,
+} from "@/lib/auth-native-client";
 import type { Usuario } from "@/types/usuario";
 
-const cacheDev = globalThis as typeof globalThis & { doaiTokenDev?: Promise<string> };
+const cacheDev = globalThis as typeof globalThis & {
+  doaiTokenDev?: Promise<string>;
+};
 
 async function loginDev(): Promise<string> {
   cacheDev.doaiTokenDev ??= autenticarComEmail(
@@ -13,7 +18,10 @@ async function loginDev(): Promise<string> {
     process.env.DEV_LOGIN_SENHA ?? "",
     false,
   ).then(({ data, error }) => {
-    if (error || !data?.token) throw new Error("O login de desenvolvimento não retornou uma sessão válida.");
+    if (error || !data?.token)
+      throw new Error(
+        "O login de desenvolvimento não retornou uma sessão válida.",
+      );
     return data.token;
   });
 
@@ -34,12 +42,18 @@ export async function getToken(): Promise<string | undefined> {
 function sessaoNativaAtiva(valor: unknown): boolean {
   if (!valor || typeof valor !== "object" || Array.isArray(valor)) return false;
   const usuario = (valor as { user?: unknown }).user;
-  return Boolean(usuario && typeof usuario === "object" && !Array.isArray(usuario) &&
-    typeof (usuario as { id?: unknown }).id === "string" && (usuario as { id: string }).id);
+  return Boolean(
+    usuario &&
+    typeof usuario === "object" &&
+    !Array.isArray(usuario) &&
+    typeof (usuario as { id?: unknown }).id === "string" &&
+    (usuario as { id: string }).id,
+  );
 }
 
 function statusDoErro(erro: unknown): number | undefined {
-  if (!erro || typeof erro !== "object" || !("status" in erro)) return undefined;
+  if (!erro || typeof erro !== "object" || !("status" in erro))
+    return undefined;
   return typeof erro.status === "number" ? erro.status : undefined;
 }
 
@@ -63,7 +77,10 @@ export async function validarSessaoNativa(token: string): Promise<boolean> {
 
 type OpcoesFetch = Omit<NonNullable<Parameters<typeof fetchApi>[1]>, "token">;
 
-export async function fetchApiAutenticado<T>(caminho: string, opcoes: OpcoesFetch = {}): Promise<T> {
+export async function fetchApiAutenticado<T>(
+  caminho: string,
+  opcoes: OpcoesFetch = {},
+): Promise<T> {
   const token = await getToken();
   if (!token) redirect("/login");
 
@@ -87,7 +104,12 @@ export async function getUsuarioLogado(): Promise<Usuario> {
   const usuario = await fetchApiAutenticado<Usuario>("perfil", {
     signal: AbortSignal.timeout(10_000),
   });
-  if (!usuario || typeof usuario._id !== "string" || !usuario._id || usuario.situacao !== "ATIVO") {
+  if (
+    !usuario ||
+    typeof usuario._id !== "string" ||
+    !usuario._id ||
+    usuario.situacao !== "ATIVO"
+  ) {
     redirect("/login");
   }
   return usuario;

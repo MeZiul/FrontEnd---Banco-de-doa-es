@@ -5,7 +5,10 @@ import {
   redefinirSenhaNativa,
   solicitarRedefinicaoDeSenha,
 } from "@/lib/auth-native-client";
-import { validarRecuperacao, validarRedefinicao } from "@/lib/perfil-validation";
+import {
+  validarRecuperacao,
+  validarRedefinicao,
+} from "@/lib/perfil-validation";
 
 export type ResultadoRecuperacao = { sucesso: boolean; mensagem: string };
 
@@ -14,7 +17,10 @@ function destinoDeRecuperacao(origem: string | null): string | undefined {
   try {
     const url = new URL(origem);
     if (url.protocol !== "https:" && url.protocol !== "http:") return undefined;
-    if (url.protocol === "http:" && !["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)) {
+    if (
+      url.protocol === "http:" &&
+      !["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)
+    ) {
       return undefined;
     }
     return new URL("/redefinir-senha", url.origin).toString();
@@ -24,7 +30,8 @@ function destinoDeRecuperacao(origem: string | null): string | undefined {
 }
 
 function statusDoErro(erro: unknown): number | undefined {
-  if (!erro || typeof erro !== "object" || !("status" in erro)) return undefined;
+  if (!erro || typeof erro !== "object" || !("status" in erro))
+    return undefined;
   return typeof erro.status === "number" ? erro.status : undefined;
 }
 
@@ -33,32 +40,47 @@ export async function solicitarRecuperacao(
   form: FormData,
 ): Promise<ResultadoRecuperacao> {
   const resultado = validarRecuperacao({ email: form.get("email") });
-  if (resultado.erro !== undefined) return { sucesso: false, mensagem: resultado.erro };
+  if (resultado.erro !== undefined)
+    return { sucesso: false, mensagem: resultado.erro };
 
   const redirectTo = destinoDeRecuperacao((await headers()).get("origin"));
   if (!redirectTo) {
-    return { sucesso: false, mensagem: "Não foi possível solicitar a recuperação. Tente novamente." };
+    return {
+      sucesso: false,
+      mensagem: "Não foi possível solicitar a recuperação. Tente novamente.",
+    };
   }
 
   try {
-    const resposta = await solicitarRedefinicaoDeSenha(resultado.dados.email, redirectTo);
+    const resposta = await solicitarRedefinicaoDeSenha(
+      resultado.dados.email,
+      redirectTo,
+    );
     if (resposta.error) {
       return {
         sucesso: false,
-        mensagem: resposta.error.status === 429
-          ? "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente."
-          : "Não foi possível solicitar a recuperação. Tente novamente.",
+        mensagem:
+          resposta.error.status === 429
+            ? "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente."
+            : "Não foi possível solicitar a recuperação. Tente novamente.",
       };
     }
     if (!resposta.data?.status) {
-      return { sucesso: false, mensagem: "Não foi possível solicitar a recuperação. Tente novamente." };
+      return {
+        sucesso: false,
+        mensagem: "Não foi possível solicitar a recuperação. Tente novamente.",
+      };
     }
     return {
       sucesso: true,
-      mensagem: "Se houver uma conta com este e-mail, a solicitação foi recebida. Se o envio estiver habilitado, você receberá instruções por e-mail.",
+      mensagem:
+        "Se houver uma conta com este e-mail, a solicitação foi recebida. Se o envio estiver habilitado, você receberá instruções por e-mail.",
     };
   } catch {
-    return { sucesso: false, mensagem: "Não foi possível solicitar a recuperação. Tente novamente." };
+    return {
+      sucesso: false,
+      mensagem: "Não foi possível solicitar a recuperação. Tente novamente.",
+    };
   }
 }
 
@@ -71,35 +93,52 @@ export async function redefinirSenha(
     novaSenha: form.get("novaSenha"),
     confirmarSenha: form.get("confirmarSenha"),
   });
-  if (resultado.erro !== undefined) return { sucesso: false, mensagem: resultado.erro };
+  if (resultado.erro !== undefined)
+    return { sucesso: false, mensagem: resultado.erro };
 
   try {
-    const resposta = await redefinirSenhaNativa(resultado.dados.novaSenha, resultado.dados.token);
+    const resposta = await redefinirSenhaNativa(
+      resultado.dados.novaSenha,
+      resultado.dados.token,
+    );
     if (!resposta.error && resposta.data?.status) {
       return {
         sucesso: true,
-        mensagem: "Senha redefinida com sucesso. Entre novamente com sua nova senha.",
+        mensagem:
+          "Senha redefinida com sucesso. Entre novamente com sua nova senha.",
       };
     }
     if (resposta.error && resposta.error.status === 429) {
       return {
         sucesso: false,
-        mensagem: "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.",
+        mensagem:
+          "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.",
       };
     }
-    if (resposta.error && ![400, 401, 403, 404].includes(resposta.error.status)) {
-      return { sucesso: false, mensagem: "Não foi possível redefinir a senha. Tente novamente." };
+    if (
+      resposta.error &&
+      ![400, 401, 403, 404].includes(resposta.error.status)
+    ) {
+      return {
+        sucesso: false,
+        mensagem: "Não foi possível redefinir a senha. Tente novamente.",
+      };
     }
-    return { sucesso: false, mensagem: "Este link é inválido ou expirou. Solicite um novo link de recuperação." };
+    return {
+      sucesso: false,
+      mensagem:
+        "Este link é inválido ou expirou. Solicite um novo link de recuperação.",
+    };
   } catch (erro) {
     const status = statusDoErro(erro);
     return {
       sucesso: false,
-      mensagem: status === 429
-        ? "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente."
-        : status !== undefined && [400, 401, 403, 404].includes(status)
-          ? "Este link é inválido ou expirou. Solicite um novo link de recuperação."
-          : "Não foi possível redefinir a senha. Tente novamente.",
+      mensagem:
+        status === 429
+          ? "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente."
+          : status !== undefined && [400, 401, 403, 404].includes(status)
+            ? "Este link é inválido ou expirou. Solicite um novo link de recuperação."
+            : "Não foi possível redefinir a senha. Tente novamente.",
     };
   }
 }

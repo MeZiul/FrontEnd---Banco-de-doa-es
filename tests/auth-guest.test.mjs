@@ -33,34 +33,50 @@ function ambiente({
     }
   }
 
-  const redirecionar = destino => {
+  const redirecionar = (destino) => {
     throw Object.assign(new Error("Redirect"), { destino });
   };
   const cookieStore = {
-    get: () => token ? { value: token } : undefined,
+    get: () => (token ? { value: token } : undefined),
     set: (...args) => cookiesEscritos.push(args),
-    delete: nome => cookiesExcluidos.push(nome),
+    delete: (nome) => cookiesExcluidos.push(nome),
   };
   const authNative = {
     autenticarComEmail: async (...args) => {
       chamadasNativas.push({ metodo: "entrar", args });
       if (nativeThrow) throw nativeThrow;
-      return nativeResponse ?? {
-        data: { redirect: false, token: "nova-sessao", user: { id: "pessoa" } },
-        error: null,
-      };
+      return (
+        nativeResponse ?? {
+          data: {
+            redirect: false,
+            token: "nova-sessao",
+            user: { id: "pessoa" },
+          },
+          error: null,
+        }
+      );
     },
-    cadastrarComEmail: async dados => {
+    cadastrarComEmail: async (dados) => {
       chamadasNativas.push({ metodo: "cadastrar", args: [dados] });
       if (nativeThrow) throw nativeThrow;
-      return signupResponse ?? { data: { token: null, user: { id: "pessoa" } }, error: null };
+      return (
+        signupResponse ?? {
+          data: { token: null, user: { id: "pessoa" } },
+          error: null,
+        }
+      );
     },
-    consultarSessaoNativa: async valor => {
+    consultarSessaoNativa: async (valor) => {
       sessoesNativas.push(valor);
       if (sessionThrow) throw sessionThrow;
-      return sessionResponse ?? { data: { session: { id: "sessao" }, user: { id: "pessoa" } }, error: null };
+      return (
+        sessionResponse ?? {
+          data: { session: { id: "sessao" }, user: { id: "pessoa" } },
+          error: null,
+        }
+      );
     },
-    encerrarSessaoNativa: async valor => {
+    encerrarSessaoNativa: async (valor) => {
       chamadasNativas.push({ metodo: "sair", args: [valor] });
       return signOutResponse ?? { data: { success: true }, error: null };
     },
@@ -83,7 +99,8 @@ function ambiente({
       AbortSignal,
       process: { env: { NODE_ENV: "test" } },
       require(nome) {
-        if (nome === "next/headers") return { cookies: async () => cookieStore };
+        if (nome === "next/headers")
+          return { cookies: async () => cookieStore };
         if (nome === "next/navigation") return { redirect: redirecionar };
         if (nome === "@/lib/api") return api;
         if (nome === "@/lib/auth-cookie") return { COOKIE_TOKEN: "doai_token" };
@@ -92,7 +109,11 @@ function ambiente({
         if (nome === "@/lib/auth-native-client") return authNative;
         if (nome === "react/jsx-runtime") return require(nome);
         if (nome.startsWith("@/components/auth/")) {
-          return { default: () => null, LoginForm: () => null, SignupForm: () => null };
+          return {
+            default: () => null,
+            LoginForm: () => null,
+            SignupForm: () => null,
+          };
         }
         throw new Error(`Import inesperado: ${nome}`);
       },
@@ -110,7 +131,14 @@ function ambiente({
     return contexto.exports;
   }
 
-  return { carregar, chamadas, chamadasNativas, sessoesNativas, cookiesEscritos, cookiesExcluidos };
+  return {
+    carregar,
+    chamadas,
+    chamadasNativas,
+    sessoesNativas,
+    cookiesEscritos,
+    cookiesExcluidos,
+  };
 }
 
 test("visitante sem cookie não consulta Better Auth nem ativa login automático de desenvolvimento", async () => {
@@ -121,7 +149,10 @@ test("visitante sem cookie não consulta Better Auth nem ativa login automático
 });
 
 test("get-session 200 null permite visitante sem consultar o perfil do domínio", async () => {
-  const app = ambiente({ token: "expirada", sessionResponse: { data: null, error: null } });
+  const app = ambiente({
+    token: "expirada",
+    sessionResponse: { data: null, error: null },
+  });
   await app.carregar("lib/auth-guest.ts").exigirVisitante();
   assert.deepEqual(app.sessoesNativas, ["expirada"]);
   assert.equal(app.chamadas.length, 0);
@@ -143,7 +174,7 @@ test("sessão válida exige perfil de domínio ativo antes de redirecionar visit
   const app = ambiente({ token: "sessao-valida" });
   await assert.rejects(
     () => app.carregar("lib/auth-guest.ts").exigirVisitante(),
-    erro => erro.destino === "/",
+    (erro) => erro.destino === "/",
   );
   assert.deepEqual(app.sessoesNativas, ["sessao-valida"]);
   assert.equal(app.chamadas[0].path, "perfil");
@@ -151,12 +182,18 @@ test("sessão válida exige perfil de domínio ativo antes de redirecionar visit
   assert.ok(app.chamadas[0].opcoes.signal instanceof AbortSignal);
 });
 
-for (const path of ["app/(auth)/login/page.tsx", "app/(auth)/cadastro/page.tsx"]) {
+for (const path of [
+  "app/(auth)/login/page.tsx",
+  "app/(auth)/cadastro/page.tsx",
+]) {
   test(`${path}: sessão válida redireciona antes de renderizar o formulário`, async () => {
     const app = ambiente({ token: "sessao-valida" });
     await assert.rejects(
-      () => app.carregar(path).default({ searchParams: Promise.resolve({ redirect: "/login" }) }),
-      erro => erro.destino === "/",
+      () =>
+        app
+          .carregar(path)
+          .default({ searchParams: Promise.resolve({ redirect: "/login" }) }),
+      (erro) => erro.destino === "/",
     );
     assert.deepEqual(app.sessoesNativas, ["sessao-valida"]);
     assert.equal(app.chamadas[0].path, "perfil");
@@ -164,14 +201,20 @@ for (const path of ["app/(auth)/login/page.tsx", "app/(auth)/cadastro/page.tsx"]
 }
 
 test("perfil inativo e respostas de domínio 403/5xx não são tratados como sessão expirada", async () => {
-  const inativo = ambiente({ token: "sessao-valida", profile: { _id: "pessoa", situacao: "SUSPENSO" } });
-  await assert.rejects(() => inativo.carregar("lib/auth-guest.ts").exigirVisitante(), /perfil ativo/);
+  const inativo = ambiente({
+    token: "sessao-valida",
+    profile: { _id: "pessoa", situacao: "SUSPENSO" },
+  });
+  await assert.rejects(
+    () => inativo.carregar("lib/auth-guest.ts").exigirVisitante(),
+    /perfil ativo/,
+  );
 
   for (const status of [403, 500, 503]) {
     const app = ambiente({ token: "sessao-valida", status });
     await assert.rejects(
       () => app.carregar("lib/auth-guest.ts").exigirVisitante(),
-      erro => erro.status === status,
+      (erro) => erro.status === status,
     );
   }
 });
@@ -182,15 +225,19 @@ test("falhas de verificação Better Auth não abrem o formulário", async () =>
       token: "existente",
       sessionResponse: { data: null, error: { status } },
     });
-    await assert.rejects(() => app.carregar("lib/auth-guest.ts").exigirVisitante());
+    await assert.rejects(() =>
+      app.carregar("lib/auth-guest.ts").exigirVisitante(),
+    );
     assert.equal(app.chamadas.length, 0);
   }
 
   const falha = new TypeError("Conexão indisponível");
   await assert.rejects(
-    () => ambiente({ token: "existente", sessionThrow: falha })
-      .carregar("lib/auth-guest.ts").exigirVisitante(),
-    erro => erro === falha,
+    () =>
+      ambiente({ token: "existente", sessionThrow: falha })
+        .carregar("lib/auth-guest.ts")
+        .exigirVisitante(),
+    (erro) => erro === falha,
   );
 });
 
@@ -199,7 +246,7 @@ test("ações de uma aba antiga bloqueiam login e cadastro quando a sessão est�
     const app = ambiente({ token: "sessao-valida" });
     await assert.rejects(
       () => app.carregar("app/(auth)/actions.ts")[nome]({}, "/login"),
-      erro => erro.destino === "/",
+      (erro) => erro.destino === "/",
     );
     assert.equal(app.sessoesNativas.length, 1);
     assert.equal(app.chamadas[0].path, "perfil");
@@ -213,17 +260,22 @@ test("cookie revogado permite login Better Auth e mantém a sessão HttpOnly", a
     sessionResponse: { data: null, error: null },
   });
   await assert.rejects(
-    () => app.carregar("app/(auth)/actions.ts").entrar(
-      { email: "pessoa@example.test", senha: "exemplo", lembrar: true },
-      "/perfil",
-    ),
-    erro => erro.destino === "/perfil",
+    () =>
+      app
+        .carregar("app/(auth)/actions.ts")
+        .entrar(
+          { email: "pessoa@example.test", senha: "exemplo", lembrar: true },
+          "/perfil",
+        ),
+    (erro) => erro.destino === "/perfil",
   );
   assert.equal(app.chamadas.length, 0);
-  assert.deepEqual(app.chamadasNativas, [{
-    metodo: "entrar",
-    args: ["pessoa@example.test", "exemplo", true],
-  }]);
+  assert.deepEqual(app.chamadasNativas, [
+    {
+      metodo: "entrar",
+      args: ["pessoa@example.test", "exemplo", true],
+    },
+  ]);
   assert.equal(app.cookiesEscritos[0][0], "doai_token");
   assert.equal(app.cookiesEscritos[0][1], "nova-sessao");
   assert.deepEqual(app.cookiesEscritos[0][2], {
@@ -236,44 +288,52 @@ test("cookie revogado permite login Better Auth e mantém a sessão HttpOnly", a
 });
 
 test("cadastro Better Auth usa dados validados, não abre sessão e exige login explícito", async () => {
-  const app = ambiente({ token: "revogada", sessionResponse: { data: null, error: null } });
+  const app = ambiente({
+    token: "revogada",
+    sessionResponse: { data: null, error: null },
+  });
   await assert.rejects(
-    () => app.carregar("app/(auth)/actions.ts").cadastrar({
-      nome: "Maria da Silva",
-      email: "maria@example.test",
-      cpf: "529.982.247-25",
-      telefone: "11999999999",
-      cidade: "São Paulo",
-      uf: "sp",
-      senha: "Teste123!",
-      confirmarSenha: "Teste123!",
-      termos: true,
-      perfil: "ADMINISTRADOR",
-    }),
-    erro => erro.destino === "/login?cadastro=sucesso",
+    () =>
+      app.carregar("app/(auth)/actions.ts").cadastrar({
+        nome: "Maria da Silva",
+        email: "maria@example.test",
+        cpf: "529.982.247-25",
+        telefone: "11999999999",
+        cidade: "São Paulo",
+        uf: "sp",
+        senha: "Teste123!",
+        confirmarSenha: "Teste123!",
+        termos: true,
+        perfil: "ADMINISTRADOR",
+      }),
+    (erro) => erro.destino === "/login?cadastro=sucesso",
   );
   assert.equal(app.chamadas.length, 0);
   assert.equal(app.cookiesEscritos.length, 0);
-  assert.equal(JSON.stringify(app.chamadasNativas[0]), JSON.stringify({
-    metodo: "cadastrar",
-    args: [{
-      name: "Maria da Silva",
-      email: "maria@example.test",
-      password: "Teste123!",
-      cpf: "52998224725",
-      telefone: "11999999999",
-      cidade: "São Paulo",
-      uf: "SP",
-    }],
-  }));
+  assert.equal(
+    JSON.stringify(app.chamadasNativas[0]),
+    JSON.stringify({
+      metodo: "cadastrar",
+      args: [
+        {
+          name: "Maria da Silva",
+          email: "maria@example.test",
+          password: "Teste123!",
+          cpf: "52998224725",
+          telefone: "11999999999",
+          cidade: "São Paulo",
+          uf: "SP",
+        },
+      ],
+    }),
+  );
 });
 
 test("login Better Auth não é chamado quando a entrada é inválida", async () => {
   const app = ambiente();
-  const resultado = await app.carregar("app/(auth)/actions.ts").entrar(
-    { email: "", senha: "" },
-    "/perfil",
-  );
+  const resultado = await app
+    .carregar("app/(auth)/actions.ts")
+    .entrar({ email: "", senha: "" }, "/perfil");
   assert.equal(typeof resultado.erro, "string");
   assert.equal(app.chamadasNativas.length, 0);
   assert.equal(app.cookiesEscritos.length, 0);
@@ -282,39 +342,95 @@ test("login Better Auth não é chamado quando a entrada é inválida", async ()
 for (const [status, mensagem] of [
   [400, "E-mail ou senha inválidos."],
   [401, "E-mail ou senha inválidos."],
-  [403, "Não foi possível entrar nesta conta. Verifique os dados e tente novamente."],
+  [
+    403,
+    "Não foi possível entrar nesta conta. Verifique os dados e tente novamente.",
+  ],
   [429, "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente."],
   [500, "Não foi possível realizar o login. Tente novamente."],
 ]) {
   test(`resposta nativa ${status} retorna mensagem localizada sem gravar sessão`, async () => {
-    const app = ambiente({ nativeResponse: { data: null, error: { status, message: "Native server message" } } });
-    const resultado = await app.carregar("app/(auth)/actions.ts").entrar(
-      { email: "pessoa@example.test", senha: "exemplo" },
-      "/perfil",
-    );
+    const app = ambiente({
+      nativeResponse: {
+        data: null,
+        error: {
+          status,
+          code: status === 403 ? "ORIGIN_CHECK_FAILED" : undefined,
+          message: "Native server message",
+        },
+      },
+    });
+    const resultado = await app
+      .carregar("app/(auth)/actions.ts")
+      .entrar({ email: "pessoa@example.test", senha: "exemplo" }, "/perfil");
     assert.equal(resultado.erro, mensagem);
     assert.equal(app.chamadasNativas.length, 1);
     assert.equal(app.cookiesEscritos.length, 0);
   });
 }
 
+test("403 ACCOUNT_SUSPENDED mostra motivo legível e código/mensagem desconhecidos continuam genéricos", async () => {
+  const suspensa = ambiente({
+    nativeResponse: {
+      data: null,
+      error: {
+        status: 403,
+        code: "ACCOUNT_SUSPENDED",
+        message: "Conta suspensa até 13/10/2026 por violação das regras.",
+      },
+    },
+  });
+  const resultadoSuspensa = await suspensa
+    .carregar("app/(auth)/actions.ts")
+    .entrar({ email: "pessoa@example.test", senha: "exemplo" }, "/perfil");
+  assert.equal(
+    resultadoSuspensa.erro,
+    "Conta suspensa até 13/10/2026 por violação das regras.",
+  );
+  assert.equal(suspensa.cookiesEscritos.length, 0);
+
+  for (const error of [
+    { status: 403, code: "ORIGIN_CHECK_FAILED", message: "Origin rejected" },
+    { status: 403, code: "ACCOUNT_SUSPENDED", message: "   " },
+  ]) {
+    const app = ambiente({ nativeResponse: { data: null, error } });
+    const resultado = await app
+      .carregar("app/(auth)/actions.ts")
+      .entrar({ email: "pessoa@example.test", senha: "exemplo" }, "/perfil");
+    assert.equal(
+      resultado.erro,
+      "Não foi possível entrar nesta conta. Verifique os dados e tente novamente.",
+    );
+    assert.equal(app.cookiesEscritos.length, 0);
+  }
+});
+
 test("resposta sem token e erro de transporte não gravam cookie de sessão", async () => {
   const incompleta = ambiente({
-    nativeResponse: { data: { token: "", user: { id: "pessoa" } }, error: null },
+    nativeResponse: {
+      data: { token: "", user: { id: "pessoa" } },
+      error: null,
+    },
   });
-  const resultadoIncompleto = await incompleta.carregar("app/(auth)/actions.ts").entrar(
-    { email: "pessoa@example.test", senha: "exemplo" },
-    "/perfil",
+  const resultadoIncompleto = await incompleta
+    .carregar("app/(auth)/actions.ts")
+    .entrar({ email: "pessoa@example.test", senha: "exemplo" }, "/perfil");
+  assert.equal(
+    resultadoIncompleto.erro,
+    "A API não retornou uma sessão válida. Tente novamente.",
   );
-  assert.equal(resultadoIncompleto.erro, "A API não retornou uma sessão válida. Tente novamente.");
   assert.equal(incompleta.cookiesEscritos.length, 0);
 
-  const falha = ambiente({ nativeThrow: new TypeError("Conexão indisponível") });
-  const resultadoFalha = await falha.carregar("app/(auth)/actions.ts").entrar(
-    { email: "pessoa@example.test", senha: "exemplo" },
-    "/perfil",
+  const falha = ambiente({
+    nativeThrow: new TypeError("Conexão indisponível"),
+  });
+  const resultadoFalha = await falha
+    .carregar("app/(auth)/actions.ts")
+    .entrar({ email: "pessoa@example.test", senha: "exemplo" }, "/perfil");
+  assert.equal(
+    resultadoFalha.erro,
+    "Não foi possível realizar o login. Tente novamente.",
   );
-  assert.equal(resultadoFalha.erro, "Não foi possível realizar o login. Tente novamente.");
   assert.equal(falha.cookiesEscritos.length, 0);
 });
 
@@ -322,9 +438,11 @@ test("sign-out Better Auth limpa o cookie após revogar ou confirmar sessão já
   const app = ambiente({ token: "sessao-valida" });
   await assert.rejects(
     () => app.carregar("app/(auth)/actions.ts").sair(),
-    erro => erro.destino === "/login",
+    (erro) => erro.destino === "/login",
   );
-  assert.deepEqual(app.chamadasNativas, [{ metodo: "sair", args: ["sessao-valida"] }]);
+  assert.deepEqual(app.chamadasNativas, [
+    { metodo: "sair", args: ["sessao-valida"] },
+  ]);
   assert.deepEqual(app.cookiesExcluidos, ["doai_token"]);
 });
 
@@ -334,6 +452,9 @@ test("falha de sign-out mantém cookie para permitir nova tentativa", async () =
     signOutResponse: { data: null, error: { status: 503 } },
   });
   const resultado = await app.carregar("app/(auth)/actions.ts").sair();
-  assert.equal(resultado.erro, "Não foi possível encerrar a sessão. Tente novamente.");
+  assert.equal(
+    resultado.erro,
+    "Não foi possível encerrar a sessão. Tente novamente.",
+  );
   assert.deepEqual(app.cookiesExcluidos, []);
 });

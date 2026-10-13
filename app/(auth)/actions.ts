@@ -20,24 +20,44 @@ import {
 export type ResultadoAuth = { erro: string };
 
 function statusDoErro(erro: unknown): number | undefined {
-  if (!erro || typeof erro !== "object" || !("status" in erro)) return undefined;
+  if (!erro || typeof erro !== "object" || !("status" in erro))
+    return undefined;
   return typeof erro.status === "number" ? erro.status : undefined;
 }
 
 function mensagemErro(erro: unknown, fallback: string): ResultadoAuth {
-  if (erro instanceof ErroApi && [400, 401, 403, 409, 429].includes(erro.status)) {
+  if (
+    erro instanceof ErroApi &&
+    [400, 401, 403, 409, 429].includes(erro.status)
+  ) {
     return { erro: erro.message };
   }
   return { erro: fallback };
 }
 
-function mensagemErroLoginNativo(status: number | undefined): ResultadoAuth {
-  if (status === 400 || status === 401) return { erro: "E-mail ou senha inválidos." };
+function mensagemErroLoginNativo(
+  status: number | undefined,
+  codigo?: string,
+  mensagem?: string,
+): ResultadoAuth {
+  if (status === 400 || status === 401)
+    return { erro: "E-mail ou senha inválidos." };
   if (status === 403) {
-    return { erro: "Não foi possível entrar nesta conta. Verifique os dados e tente novamente." };
+    if (
+      codigo === "ACCOUNT_SUSPENDED" &&
+      typeof mensagem === "string" &&
+      mensagem.trim()
+    ) {
+      return { erro: mensagem };
+    }
+    return {
+      erro: "Não foi possível entrar nesta conta. Verifique os dados e tente novamente.",
+    };
   }
   if (status === 429) {
-    return { erro: "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente." };
+    return {
+      erro: "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.",
+    };
   }
   return { erro: "Não foi possível realizar o login. Tente novamente." };
 }
@@ -45,23 +65,39 @@ function mensagemErroLoginNativo(status: number | undefined): ResultadoAuth {
 function mensagemErroCadastroNativo(status: number | undefined): ResultadoAuth {
   if (status === 409) return { erro: "Já existe uma conta com estes dados." };
   if (status === 429) {
-    return { erro: "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente." };
+    return {
+      erro: "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.",
+    };
   }
-  return { erro: "Não foi possível criar a conta. Verifique os dados e tente novamente." };
+  return {
+    erro: "Não foi possível criar a conta. Verifique os dados e tente novamente.",
+  };
 }
 
-function temSessaoNativa(valor: unknown): valor is { token: string; user: Record<string, unknown> } {
+function temSessaoNativa(
+  valor: unknown,
+): valor is { token: string; user: Record<string, unknown> } {
   if (!valor || typeof valor !== "object" || Array.isArray(valor)) return false;
   const sessao = valor as { token?: unknown; user?: unknown };
-  return typeof sessao.token === "string" && sessao.token.length > 0 &&
-    typeof sessao.user === "object" && sessao.user !== null && !Array.isArray(sessao.user);
+  return (
+    typeof sessao.token === "string" &&
+    sessao.token.length > 0 &&
+    typeof sessao.user === "object" &&
+    sessao.user !== null &&
+    !Array.isArray(sessao.user)
+  );
 }
 
 function temUsuarioCadastrado(valor: unknown): boolean {
   if (!valor || typeof valor !== "object" || Array.isArray(valor)) return false;
   const usuario = (valor as { user?: unknown }).user;
-  return Boolean(usuario && typeof usuario === "object" && !Array.isArray(usuario) &&
-    typeof (usuario as { id?: unknown }).id === "string" && (usuario as { id: string }).id);
+  return Boolean(
+    usuario &&
+    typeof usuario === "object" &&
+    !Array.isArray(usuario) &&
+    typeof (usuario as { id?: unknown }).id === "string" &&
+    (usuario as { id: string }).id,
+  );
 }
 
 export async function cadastrar(entrada: unknown): Promise<ResultadoAuth> {
@@ -81,7 +117,10 @@ export async function cadastrar(entrada: unknown): Promise<ResultadoAuth> {
       uf: resultado.dados.uf,
     });
   } catch (erro) {
-    return mensagemErro(erro, "Não foi possível criar a conta. Tente novamente.");
+    return mensagemErro(
+      erro,
+      "Não foi possível criar a conta. Tente novamente.",
+    );
   }
 
   if (resposta.error) return mensagemErroCadastroNativo(resposta.error.status);
@@ -91,7 +130,10 @@ export async function cadastrar(entrada: unknown): Promise<ResultadoAuth> {
   redirect("/login?cadastro=sucesso");
 }
 
-export async function entrar(entrada: unknown, destino: unknown): Promise<ResultadoAuth> {
+export async function entrar(
+  entrada: unknown,
+  destino: unknown,
+): Promise<ResultadoAuth> {
   await exigirVisitante();
   const resultado = validarLogin(entrada);
   if (resultado.erro !== undefined) return { erro: resultado.erro };
@@ -101,10 +143,19 @@ export async function entrar(entrada: unknown, destino: unknown): Promise<Result
   try {
     resposta = await autenticarComEmail(email, senha, lembrar);
   } catch (erro) {
-    return mensagemErro(erro, "Não foi possível realizar o login. Tente novamente.");
+    return mensagemErro(
+      erro,
+      "Não foi possível realizar o login. Tente novamente.",
+    );
   }
 
-  if (resposta.error) return mensagemErroLoginNativo(resposta.error.status);
+  if (resposta.error) {
+    return mensagemErroLoginNativo(
+      resposta.error.status,
+      resposta.error.code,
+      resposta.error.message,
+    );
+  }
   if (!temSessaoNativa(resposta.data)) {
     return { erro: "A API não retornou uma sessão válida. Tente novamente." };
   }

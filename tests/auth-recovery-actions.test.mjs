@@ -7,7 +7,11 @@ import ts from "typescript";
 
 const require = createRequire(import.meta.url);
 
-function ambiente({ origin = "https://frontend.example.test", requestResponse, resetResponse } = {}) {
+function ambiente({
+  origin = "https://frontend.example.test",
+  requestResponse,
+  resetResponse,
+} = {}) {
   const chamadas = [];
   const authNative = {
     solicitarRedefinicaoDeSenha: async (...args) => {
@@ -24,22 +28,30 @@ function ambiente({ origin = "https://frontend.example.test", requestResponse, r
     FormData,
     URL,
     require(nome) {
-      if (nome === "next/headers") return { headers: async () => ({ get: () => origin }) };
+      if (nome === "next/headers")
+        return { headers: async () => ({ get: () => origin }) };
       if (nome === "@/lib/auth-native-client") return authNative;
-      if (nome === "@/lib/perfil-validation") return require("../lib/perfil-validation.ts");
+      if (nome === "@/lib/perfil-validation")
+        return require("../lib/perfil-validation.ts");
       throw new Error(`Import inesperado: ${nome}`);
     },
   };
-  const source = readFileSync(new URL("../app/(auth)/recuperacao-actions.ts", import.meta.url), "utf8");
+  const source = readFileSync(
+    new URL("../app/(auth)/recuperacao-actions.ts", import.meta.url),
+    "utf8",
+  );
   const code = ts.transpileModule(source, {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2022,
+    },
   }).outputText;
   vm.runInNewContext(code, contexto);
   return { actions: contexto.exports, chamadas };
 }
 
 function formData(values) {
-  return { get: name => values[name] ?? null };
+  return { get: (name) => values[name] ?? null };
 }
 
 test("solicitação usa o endpoint Better Auth com callback do frontend e mensagem sem alegar envio", async () => {
@@ -50,7 +62,10 @@ test("solicitação usa o endpoint Better Auth com callback do frontend e mensag
   );
   assert.deepEqual(JSON.parse(JSON.stringify(app.chamadas[0])), {
     metodo: "solicitar",
-    args: ["pessoa@example.test", "https://preview.example.test/redefinir-senha"],
+    args: [
+      "pessoa@example.test",
+      "https://preview.example.test/redefinir-senha",
+    ],
   });
   assert.equal(resultado.sucesso, true);
   assert.match(resultado.mensagem, /Se o envio estiver habilitado/);
@@ -91,7 +106,11 @@ test("redefinição envia token e senha nova ao endpoint Better Auth", async () 
   const app = ambiente();
   const resultado = await app.actions.redefinirSenha(
     { sucesso: false, mensagem: "" },
-    formData({ token: "reset-token", novaSenha: "NovaSenha!234", confirmarSenha: "NovaSenha!234" }),
+    formData({
+      token: "reset-token",
+      novaSenha: "NovaSenha!234",
+      confirmarSenha: "NovaSenha!234",
+    }),
   );
   assert.deepEqual(JSON.parse(JSON.stringify(app.chamadas[0])), {
     metodo: "redefinir",
@@ -101,21 +120,38 @@ test("redefinição envia token e senha nova ao endpoint Better Auth", async () 
 });
 
 test("erros de token são genéricos e erros de limite preservam retorno localizado", async () => {
-  const tokenExpirado = ambiente({ resetResponse: { data: null, error: { status: 401 } } });
+  const tokenExpirado = ambiente({
+    resetResponse: { data: null, error: { status: 401 } },
+  });
   const erroToken = await tokenExpirado.actions.redefinirSenha(
     { sucesso: false, mensagem: "" },
-    formData({ token: "reset-token", novaSenha: "NovaSenha!234", confirmarSenha: "NovaSenha!234" }),
+    formData({
+      token: "reset-token",
+      novaSenha: "NovaSenha!234",
+      confirmarSenha: "NovaSenha!234",
+    }),
   );
   assert.match(erroToken.mensagem, /inválido ou expirou/);
 
-  const falhaServidor = ambiente({ resetResponse: { data: null, error: { status: 503 } } });
+  const falhaServidor = ambiente({
+    resetResponse: { data: null, error: { status: 503 } },
+  });
   const indisponivel = await falhaServidor.actions.redefinirSenha(
     { sucesso: false, mensagem: "" },
-    formData({ token: "reset-token", novaSenha: "NovaSenha!234", confirmarSenha: "NovaSenha!234" }),
+    formData({
+      token: "reset-token",
+      novaSenha: "NovaSenha!234",
+      confirmarSenha: "NovaSenha!234",
+    }),
   );
-  assert.equal(indisponivel.mensagem, "Não foi possível redefinir a senha. Tente novamente.");
+  assert.equal(
+    indisponivel.mensagem,
+    "Não foi possível redefinir a senha. Tente novamente.",
+  );
 
-  const limite = ambiente({ requestResponse: { data: null, error: { status: 429 } } });
+  const limite = ambiente({
+    requestResponse: { data: null, error: { status: 429 } },
+  });
   const erroLimite = await limite.actions.solicitarRecuperacao(
     { sucesso: false, mensagem: "" },
     formData({ email: "pessoa@example.test" }),

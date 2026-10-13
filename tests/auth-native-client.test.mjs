@@ -34,7 +34,10 @@ async function criarServidorAuth(responder) {
   return {
     requisicoes,
     baseURL: `http://127.0.0.1:${address.port}`,
-    fechar: () => new Promise((resolve, reject) => server.close(erro => erro ? reject(erro) : resolve())),
+    fechar: () =>
+      new Promise((resolve, reject) =>
+        server.close((erro) => (erro ? reject(erro) : resolve())),
+      ),
   };
 }
 
@@ -53,25 +56,38 @@ function json(response, body, status = 200) {
 }
 
 test("Better Auth SDK envia login nativo e retorna o token para a ponte HttpOnly", async () => {
-  const fixture = await criarServidorAuth(response => json(response, {
-    redirect: false,
-    token: "fixture-session-token",
-    user: { id: "fixture-user", email: "pessoa@example.test" },
-  }));
+  const fixture = await criarServidorAuth((response) =>
+    json(response, {
+      redirect: false,
+      token: "fixture-session-token",
+      user: { id: "fixture-user", email: "pessoa@example.test" },
+    }),
+  );
   const restaurarApi = configurarApiLocal(fixture.baseURL);
   try {
-    const resposta = await autenticarComEmail("pessoa@example.test", "senha-fixture", false);
+    const resposta = await autenticarComEmail(
+      "pessoa@example.test",
+      "senha-fixture",
+      false,
+    );
     assert.deepEqual(fixture.requisicoes[0], {
       method: "POST",
       path: "/api/auth/sign-in/email",
       origin: undefined,
       authorization: undefined,
       cookie: undefined,
-      body: { email: "pessoa@example.test", password: "senha-fixture", rememberMe: false },
+      body: {
+        email: "pessoa@example.test",
+        password: "senha-fixture",
+        rememberMe: false,
+      },
     });
     assert.equal(resposta.error, null);
     assert.equal(resposta.data?.token, "fixture-session-token");
-    assert.deepEqual(resposta.data?.user, { id: "fixture-user", email: "pessoa@example.test" });
+    assert.deepEqual(resposta.data?.user, {
+      id: "fixture-user",
+      email: "pessoa@example.test",
+    });
   } finally {
     restaurarApi();
     await fixture.fechar();
@@ -79,13 +95,23 @@ test("Better Auth SDK envia login nativo e retorna o token para a ponte HttpOnly
 });
 
 test("erro de credenciais é preservado sem repetir a requisição", async () => {
-  const fixture = await criarServidorAuth(response => json(response, {
-    code: "INVALID_EMAIL_OR_PASSWORD",
-    message: "Invalid email or password",
-  }, 401));
+  const fixture = await criarServidorAuth((response) =>
+    json(
+      response,
+      {
+        code: "INVALID_EMAIL_OR_PASSWORD",
+        message: "Invalid email or password",
+      },
+      401,
+    ),
+  );
   const restaurarApi = configurarApiLocal(fixture.baseURL);
   try {
-    const resposta = await autenticarComEmail("pessoa@example.test", "senha-incorreta", true);
+    const resposta = await autenticarComEmail(
+      "pessoa@example.test",
+      "senha-incorreta",
+      true,
+    );
     assert.equal(fixture.requisicoes.length, 1);
     assert.equal(fixture.requisicoes[0].path, "/api/auth/sign-in/email");
     assert.equal(fixture.requisicoes[0].body.rememberMe, true);
@@ -99,10 +125,12 @@ test("erro de credenciais é preservado sem repetir a requisição", async () =>
 });
 
 test("cadastro usa sign-up.email com campos adicionais e sem criar sessão", async () => {
-  const fixture = await criarServidorAuth(response => json(response, {
-    token: null,
-    user: { id: "fixture-user", email: "pessoa@example.test" },
-  }));
+  const fixture = await criarServidorAuth((response) =>
+    json(response, {
+      token: null,
+      user: { id: "fixture-user", email: "pessoa@example.test" },
+    }),
+  );
   const restaurarApi = configurarApiLocal(fixture.baseURL);
   try {
     const resposta = await cadastrarComEmail({
@@ -135,14 +163,19 @@ test("cadastro usa sign-up.email com campos adicionais e sem criar sessão", asy
 });
 
 test("solicitação de senha usa o endpoint nativo e o callback do frontend", async () => {
-  const fixture = await criarServidorAuth(response => json(response, { status: true, message: "accepted" }));
+  const fixture = await criarServidorAuth((response) =>
+    json(response, { status: true, message: "accepted" }),
+  );
   const restaurarApi = configurarApiLocal(fixture.baseURL);
   try {
     const resposta = await solicitarRedefinicaoDeSenha(
       "pessoa@example.test",
       "https://frontend.example.test/redefinir-senha",
     );
-    assert.equal(fixture.requisicoes[0].path, "/api/auth/request-password-reset");
+    assert.equal(
+      fixture.requisicoes[0].path,
+      "/api/auth/request-password-reset",
+    );
     assert.deepEqual(fixture.requisicoes[0].body, {
       email: "pessoa@example.test",
       redirectTo: "https://frontend.example.test/redefinir-senha",
@@ -155,10 +188,15 @@ test("solicitação de senha usa o endpoint nativo e o callback do frontend", as
 });
 
 test("redefinição envia apenas nova senha e token ao SDK", async () => {
-  const fixture = await criarServidorAuth(response => json(response, { status: true }));
+  const fixture = await criarServidorAuth((response) =>
+    json(response, { status: true }),
+  );
   const restaurarApi = configurarApiLocal(fixture.baseURL);
   try {
-    const resposta = await redefinirSenhaNativa("NovaSenha!234", "reset-token-fixture");
+    const resposta = await redefinirSenhaNativa(
+      "NovaSenha!234",
+      "reset-token-fixture",
+    );
     assert.equal(fixture.requisicoes[0].path, "/api/auth/reset-password");
     assert.deepEqual(fixture.requisicoes[0].body, {
       newPassword: "NovaSenha!234",
@@ -172,7 +210,7 @@ test("redefinição envia apenas nova senha e token ao SDK", async () => {
 });
 
 test("get-session valida por Bearer e trata resposta null como sessão inexistente", async () => {
-  const fixture = await criarServidorAuth(response => json(response, null));
+  const fixture = await criarServidorAuth((response) => json(response, null));
   const restaurarApi = configurarApiLocal(fixture.baseURL);
   try {
     const resposta = await consultarSessaoNativa("token-fixture");
@@ -189,7 +227,9 @@ test("get-session valida por Bearer e trata resposta null como sessão inexisten
 });
 
 test("sign-out revoga sessão por Bearer sem depender de cookie cross-site", async () => {
-  const fixture = await criarServidorAuth(response => json(response, { success: true }));
+  const fixture = await criarServidorAuth((response) =>
+    json(response, { success: true }),
+  );
   const restaurarApi = configurarApiLocal(fixture.baseURL);
   try {
     const resposta = await encerrarSessaoNativa("token-fixture");

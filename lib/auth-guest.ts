@@ -6,15 +6,21 @@ import { consultarSessaoNativa } from "@/lib/auth-native-client";
 import type { Usuario } from "@/types/usuario";
 
 function statusDoErro(erro: unknown): number | undefined {
-  if (!erro || typeof erro !== "object" || !("status" in erro)) return undefined;
+  if (!erro || typeof erro !== "object" || !("status" in erro))
+    return undefined;
   return typeof erro.status === "number" ? erro.status : undefined;
 }
 
 function sessaoNativaAtiva(valor: unknown): boolean {
   if (!valor || typeof valor !== "object" || Array.isArray(valor)) return false;
   const usuario = (valor as { user?: unknown }).user;
-  return Boolean(usuario && typeof usuario === "object" && !Array.isArray(usuario) &&
-    typeof (usuario as { id?: unknown }).id === "string" && (usuario as { id: string }).id);
+  return Boolean(
+    usuario &&
+    typeof usuario === "object" &&
+    !Array.isArray(usuario) &&
+    typeof (usuario as { id?: unknown }).id === "string" &&
+    (usuario as { id: string }).id,
+  );
 }
 
 /** Valida Better Auth e o perfil de domínio antes de redirecionar um visitante. */
@@ -39,7 +45,12 @@ export async function exigirVisitante(): Promise<void> {
       token,
       signal: AbortSignal.timeout(10_000),
     });
-    if (!usuario || typeof usuario._id !== "string" || !usuario._id || usuario.situacao !== "ATIVO") {
+    if (
+      !usuario ||
+      typeof usuario._id !== "string" ||
+      !usuario._id ||
+      usuario.situacao !== "ATIVO"
+    ) {
       throw new Error("A API não confirmou um perfil ativo.");
     }
   } catch (erro) {

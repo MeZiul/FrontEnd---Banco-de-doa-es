@@ -6,7 +6,8 @@ const AUTH_TIMEOUT_MS = 10_000;
 
 function criarClienteAuthNativo() {
   const baseURL = process.env.NEXT_PUBLIC_API_URL;
-  if (!baseURL) throw new Error("Defina NEXT_PUBLIC_API_URL para conectar à API.");
+  if (!baseURL)
+    throw new Error("Defina NEXT_PUBLIC_API_URL para conectar à API.");
 
   return createAuthClient({
     baseURL,
@@ -29,7 +30,11 @@ function criarClienteAuthNativo() {
   });
 }
 
-export async function autenticarComEmail(email: string, password: string, rememberMe: boolean) {
+export async function autenticarComEmail(
+  email: string,
+  password: string,
+  rememberMe: boolean,
+) {
   return criarClienteAuthNativo().signIn.email({
     email,
     password,
@@ -53,7 +58,10 @@ export async function cadastrarComEmail(dados: {
   });
 }
 
-export async function solicitarRedefinicaoDeSenha(email: string, redirectTo: string) {
+export async function solicitarRedefinicaoDeSenha(
+  email: string,
+  redirectTo: string,
+) {
   return criarClienteAuthNativo().requestPasswordReset({
     email,
     redirectTo,
