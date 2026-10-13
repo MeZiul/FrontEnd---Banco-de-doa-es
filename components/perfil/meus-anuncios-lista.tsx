@@ -1,7 +1,9 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Package, Users } from "lucide-react";
+import { PaginacaoLinks } from "@/components/shared/paginacao-links";
 import { alterarAnuncio, carregarInteressados } from "@/app/(protected)/perfil/meus-anuncios/actions";
 import type { InteresseAnuncio, MeuAnuncio, StatusItem } from "@/types/item-doacao";
 
@@ -122,13 +124,49 @@ function CardAnuncio({ item, ativo }: { item: MeuAnuncio; ativo: boolean }) {
   </article>;
 }
 
-export function MeusAnunciosLista({ anuncios, ativo }: { anuncios: MeuAnuncio[]; ativo: boolean }) {
-  const [filtro, setFiltro] = useState<StatusItem | "TODOS">("TODOS");
-  const visiveis = anuncios.filter((item) => filtro === "TODOS" || item.status === filtro);
+const ANUNCIOS_POR_PAGINA = 6;
+const CAMINHO = "/perfil/meus-anuncios";
+
+// A API (GET /usuario/:id/itens) devolve todos os anúncios de uma vez, sem paginação.
+// Por isso filtro e paginação são feitos aqui, com o estado na URL (?status=&page=).
+export function MeusAnunciosLista({ anuncios, ativo, pagina, status }: {
+  anuncios: MeuAnuncio[];
+  ativo: boolean;
+  pagina: number;
+  status: string;
+}) {
+  const router = useRouter();
+  const filtro: StatusItem | "TODOS" = Object.hasOwn(statusInfo, status) ? (status as StatusItem) : "TODOS";
+  const filtrados = anuncios.filter((item) => filtro === "TODOS" || item.status === filtro);
+  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / ANUNCIOS_POR_PAGINA));
+  // Página além do total (ex.: depois de filtrar) mostra a última.
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const inicio = (paginaAtual - 1) * ANUNCIOS_POR_PAGINA;
+  const visiveis = filtrados.slice(inicio, inicio + ANUNCIOS_POR_PAGINA);
+
+  // Trocar o filtro volta para a página 1.
+  function mudarFiltro(valor: string) {
+    router.push(valor === "TODOS" ? CAMINHO : `${CAMINHO}?${new URLSearchParams({ status: valor })}`);
+  }
+
   if (!anuncios.length) return <p className="rounded-2xl border border-gray-100 bg-white p-6 text-slate-500">Você ainda não publicou nenhum anúncio.</p>;
   return <>
-    <label className="mb-6 block text-sm font-medium">Filtrar por status<select value={filtro} onChange={(evento) => setFiltro(evento.target.value as StatusItem | "TODOS")} className={`${campo} max-w-xs`}><option value="TODOS">Todos</option>{Object.entries(statusInfo).map(([valor, info]) => <option key={valor} value={valor}>{info.nome}</option>)}</select></label>
+    <label className="mb-6 block text-sm font-medium">Filtrar por status<select value={filtro} onChange={(evento) => mudarFiltro(evento.target.value)} className={`${campo} max-w-xs`}><option value="TODOS">Todos</option>{Object.entries(statusInfo).map(([valor, info]) => <option key={valor} value={valor}>{info.nome}</option>)}</select></label>
     {!visiveis.length && <p role="status" className="rounded-2xl border bg-white p-6 text-slate-500">Nenhum anúncio neste status.</p>}
     <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2 xl:grid-cols-3">{visiveis.map((item) => <CardAnuncio key={item._id} item={item} ativo={ativo} />)}</div>
+    {filtrados.length > 0 && (
+      <div className="mt-6 flex flex-col items-center gap-3 border-t border-gray-200 pt-4">
+        <p className="text-sm text-gray-500">
+          Mostrando {inicio + 1}–{inicio + visiveis.length} de {filtrados.length} {filtrados.length === 1 ? "anúncio" : "anúncios"}
+        </p>
+        <PaginacaoLinks
+          pagina={paginaAtual}
+          totalPaginas={totalPaginas}
+          caminho={CAMINHO}
+          extras={filtro === "TODOS" ? {} : { status: filtro }}
+          rotulo="Paginação dos anúncios"
+        />
+      </div>
+    )}
   </>;
 }

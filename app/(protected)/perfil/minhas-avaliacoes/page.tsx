@@ -1,10 +1,11 @@
-import Link from "next/link";
 import { fetchApiAutenticado, getUsuarioLogado } from "@/lib/auth-server";
 import type { Paginado } from "@/types/api";
 import type { Avaliacao } from "@/types/avaliacao";
 import { AvaliacaoCard } from "@/components/perfil/avaliacao-card";
+import { PaginacaoLinks } from "@/components/shared/paginacao-links";
 
-const LIMITE = 20;
+const LIMITE = 5;
+const CAMINHO = "/perfil/minhas-avaliacoes";
 
 type Query = {
   page?: string | string[];
@@ -57,30 +58,39 @@ function Cartoes({ docs, usuarioId }: { docs: Avaliacao[]; usuarioId: string }) 
   );
 }
 
+// "Mostrando X–Y de Z" + paginação numerada (‹ Anterior 1 [2] 3 … 9 Próxima ›).
 function Paginacao({
   lista,
-  anterior,
-  proxima,
   rotulo,
+  parametro = "page",
+  extras,
 }: {
   lista: Paginado<Avaliacao>;
-  anterior: string;
-  proxima: string;
   rotulo: string;
+  /** Parâmetro de página na URL ("page"; no modo admin, "feitas" ou "recebidas"). */
+  parametro?: string;
+  /** Mantém na URL a página da outra seção (modo admin). */
+  extras?: Record<string, string>;
 }) {
-  if (lista.totalPages <= 1) return null;
+  if (lista.totalDocs === 0) return null;
+  const inicio = (lista.page - 1) * LIMITE + 1;
 
   return (
-    <nav aria-label={rotulo} className="flex items-center justify-between gap-4 text-sm text-blue-700">
-      {lista.hasPrevPage ? <Link href={anterior}>Página anterior</Link> : <span />}
-      <span className="text-slate-500">Página {lista.page} de {Math.max(1, lista.totalPages)}</span>
-      {lista.hasNextPage ? <Link href={proxima}>Próxima página</Link> : <span />}
-    </nav>
+    <div className="mt-6 flex flex-col items-center gap-3 border-t border-gray-200 pt-4">
+      <p className="text-sm text-gray-500">
+        Mostrando {inicio}–{inicio + lista.docs.length - 1} de {lista.totalDocs}{" "}
+        {lista.totalDocs === 1 ? "avaliação" : "avaliações"}
+      </p>
+      <PaginacaoLinks
+        pagina={lista.page}
+        totalPaginas={lista.totalPages}
+        caminho={CAMINHO}
+        parametro={parametro}
+        extras={extras}
+        rotulo={rotulo}
+      />
+    </div>
   );
-}
-
-function linkAdmin(feitas: number, recebidas: number) {
-  return `?${new URLSearchParams({ feitas: String(feitas), recebidas: String(recebidas) })}`;
 }
 
 export default async function MinhasAvaliacoes({
@@ -124,8 +134,8 @@ export default async function MinhasAvaliacoes({
           <Paginacao
             lista={feitas}
             rotulo="Paginação das avaliações feitas por mim"
-            anterior={linkAdmin(pageFeitas - 1, pageRecebidas)}
-            proxima={linkAdmin(pageFeitas + 1, pageRecebidas)}
+            parametro="feitas"
+            extras={{ recebidas: String(pageRecebidas) }}
           />
         </section>
 
@@ -137,8 +147,8 @@ export default async function MinhasAvaliacoes({
           <Paginacao
             lista={recebidas}
             rotulo="Paginação das avaliações recebidas por mim"
-            anterior={linkAdmin(pageFeitas, pageRecebidas - 1)}
-            proxima={linkAdmin(pageFeitas, pageRecebidas + 1)}
+            parametro="recebidas"
+            extras={{ feitas: String(pageFeitas) }}
           />
         </section>
       </div>
@@ -164,12 +174,7 @@ export default async function MinhasAvaliacoes({
       )}
 
       <Cartoes docs={lista.docs} usuarioId={usuario._id} />
-      <Paginacao
-        lista={lista}
-        rotulo="Paginação das avaliações"
-        anterior={`?page=${page - 1}`}
-        proxima={`?page=${page + 1}`}
-      />
+      <Paginacao lista={lista} rotulo="Paginação das avaliações" />
     </div>
   );
 }
