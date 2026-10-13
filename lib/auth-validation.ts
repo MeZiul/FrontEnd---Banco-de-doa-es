@@ -25,7 +25,8 @@ export function validarCadastro(entrada: unknown): Validacao<Cadastro> {
     nome: texto(valor.nome).trim(),
     email: texto(valor.email).trim(),
     cpf: texto(valor.cpf).replace(/\D/g, ""),
-    telefone: texto(valor.telefone).trim(),
+    // O formulário mostra a máscara "(69) 99999-0000"; na API guardamos só os dígitos.
+    telefone: texto(valor.telefone).replace(/\D/g, ""),
     cidade: texto(valor.cidade).trim(),
     uf: texto(valor.uf).trim().toUpperCase(),
     senha: texto(valor.senha),
@@ -33,6 +34,9 @@ export function validarCadastro(entrada: unknown): Validacao<Cadastro> {
   if (dados.nome.length < 3) return { erro: "Nome deve ter no mínimo 3 caracteres." };
   if (!emailValido(dados.email)) return { erro: "Informe um e-mail válido." };
   if (dados.cpf.length !== 11) return { erro: "Informe um CPF com 11 dígitos." };
+  if (dados.telefone && dados.telefone.length !== 10 && dados.telefone.length !== 11) {
+    return { erro: "Informe o telefone com DDD, ex.: (69) 99999-0000." };
+  }
   if (dados.cidade.length < 2) return { erro: "Informe sua cidade." };
   if (!/^(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)$/.test(dados.uf)) {
     return { erro: "Selecione uma UF válida." };
