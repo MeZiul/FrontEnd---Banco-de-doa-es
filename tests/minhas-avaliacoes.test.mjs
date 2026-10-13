@@ -9,6 +9,32 @@ const JSX = {
   jsxs: (type, props, key) => ({ type, props: { ...props, ...(key === undefined ? {} : { key }) } }),
 };
 
+function carregarPaginacaoLinks() {
+  const contexto = {
+    exports: {},
+    URLSearchParams,
+    require(nome) {
+      if (nome === "react/jsx-runtime") return JSX;
+      if (nome === "next/link") return { __esModule: true, default: "Link" };
+      if (nome === "lucide-react") return {
+        ChevronLeftIcon: "ChevronLeftIcon",
+        ChevronRightIcon: "ChevronRightIcon",
+        MoreHorizontalIcon: "MoreHorizontalIcon",
+      };
+      if (nome === "@/components/ui/button") return { buttonVariants: () => "button" };
+      if (nome === "@/lib/utils") return { cn: (...classes) => classes.filter(Boolean).join(" ") };
+      throw new Error(`Import inesperado no componente de paginação: ${nome}`);
+    },
+  };
+  const fonte = readFileSync(new URL("../components/shared/paginacao-links.tsx", import.meta.url), "utf8");
+  vm.runInNewContext(ts.transpileModule(fonte, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
+  }).outputText, contexto);
+  return contexto.exports.PaginacaoLinks;
+}
+
+const PaginacaoLinks = carregarPaginacaoLinks();
+
 function arvore(elemento, predicado, encontrados = []) {
   if (Array.isArray(elemento)) {
     for (const filho of elemento) arvore(filho, predicado, encontrados);
@@ -41,6 +67,7 @@ function carregarPagina({ usuario, resposta }) {
       if (nome === "react/jsx-runtime") return JSX;
       if (nome === "next/link") return { __esModule: true, default: "Link" };
       if (nome === "@/components/perfil/avaliacao-card") return { AvaliacaoCard: avaliacaoCard };
+      if (nome === "@/components/shared/paginacao-links") return { PaginacaoLinks };
       if (nome === "@/lib/auth-server") return {
         getUsuarioLogado: async () => usuario,
         fetchApiAutenticado: async (rota, opcoes) => {
@@ -100,15 +127,19 @@ test("usuário comum recebe página paginada do endpoint que a API restringe ao 
 
   const view = await app.pagina({ searchParams: Promise.resolve({ page: "2" }) });
   const cards = arvore(view, (elemento) => elemento.type === app.avaliacaoCard);
+  const paginasAtivas = arvore(view, (elemento) => elemento.type === "span" && elemento.props["aria-current"] === "page");
+  const links = arvore(view, (elemento) => elemento.type === "Link").map(({ props }) => props.href);
   const params = app.chamadas.map(({ rota, opcoes }) => ({ rota, ...opcoes.params }));
 
-  assert.deepEqual(JSON.parse(JSON.stringify(params)), [{ rota: "avaliacoes", page: 2, limite: 20 }]);
+  assert.deepEqual(JSON.parse(JSON.stringify(params)), [{ rota: "avaliacoes", page: 2, limite: 5 }]);
   assert.deepEqual(cards.map(({ props }) => ({ id: props.id, feitaPorMim: props.feitaPorMim })), [
     { id: "feita-antiga", feitaPorMim: true },
     { id: "recebida", feitaPorMim: false },
   ]);
   assert.equal(cards[0].props.editavel, undefined, "a idade da avaliação não deve desabilitar edição do autor");
-  assert.ok(arvore(view, (elemento) => elemento.type === "Link").some(({ props }) => props.href === "?page=3"));
+  assert.deepEqual(paginasAtivas.map(({ props }) => props.children), [2]);
+  assert.ok(links.includes("/perfil/minhas-avaliacoes?page=1"));
+  assert.ok(links.includes("/perfil/minhas-avaliacoes?page=3"));
   assert.doesNotMatch(texto(view), /janela de 30 dias|edição permitida por até 30 dias/i);
 });
 
@@ -123,20 +154,27 @@ test("conta administrativa consulta somente avaliações próprias e recebidas, 
   const view = await app.pagina({ searchParams: Promise.resolve({ feitas: "2", recebidas: "3" }) });
   const parametros = app.chamadas.map(({ rota, opcoes }) => ({ rota, ...opcoes.params }));
   const cards = arvore(view, (elemento) => elemento.type === app.avaliacaoCard);
-  const links = arvore(view, (elemento) => elemento.type === "Link").map(({ props }) => props.href);
+  const paginasAtivas = arvore(view, (elemento) => elemento.type === "span" && elemento.props["aria-current"] === "page");
+  const links = arvore(view, (elemento) => elemento.type === "Link")
+    .map(({ props }) => new URL(props.href, "https://example.test"));
 
   assert.deepEqual(JSON.parse(JSON.stringify(parametros)), [
-    { rota: "avaliacoes", avaliador_id: "usuario-atual", page: 2, limite: 20 },
-    { rota: "avaliacoes", avaliado_id: "usuario-atual", page: 3, limite: 20 },
+    { rota: "avaliacoes", avaliador_id: "usuario-atual", page: 2, limite: 5 },
+    { rota: "avaliacoes", avaliado_id: "usuario-atual", page: 3, limite: 5 },
   ]);
   assert.deepEqual(cards.map(({ props }) => ({ id: props.id, feitaPorMim: props.feitaPorMim })), [
     { id: "admin-fez", feitaPorMim: true },
     { id: "admin-recebeu", feitaPorMim: false },
   ]);
-  assert.ok(links.includes("?feitas=1&recebidas=3"));
-  assert.ok(links.includes("?feitas=3&recebidas=3"));
-  assert.ok(links.includes("?feitas=2&recebidas=2"));
-  assert.ok(links.includes("?feitas=2&recebidas=4"));
+  assert.deepEqual(paginasAtivas.map(({ props }) => props.children), [2, 3]);
+  assert.ok(links.some((link) => link.pathname === "/perfil/minhas-avaliacoes"
+    && link.searchParams.get("feitas") === "1" && link.searchParams.get("recebidas") === "3"));
+  assert.ok(links.some((link) => link.pathname === "/perfil/minhas-avaliacoes"
+    && link.searchParams.get("feitas") === "3" && link.searchParams.get("recebidas") === "3"));
+  assert.ok(links.some((link) => link.pathname === "/perfil/minhas-avaliacoes"
+    && link.searchParams.get("feitas") === "2" && link.searchParams.get("recebidas") === "2"));
+  assert.ok(links.some((link) => link.pathname === "/perfil/minhas-avaliacoes"
+    && link.searchParams.get("feitas") === "2" && link.searchParams.get("recebidas") === "4"));
 });
 
 test("página solicitada além do fim retorna para a última página existente", async () => {

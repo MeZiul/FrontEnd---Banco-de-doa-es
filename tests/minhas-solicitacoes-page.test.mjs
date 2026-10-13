@@ -28,8 +28,8 @@ function paginado(page = 2, overrides = {}) {
       data_resposta: null,
       data_cancelamento: null,
     }],
-    totalDocs: 41,
-    limit: 20,
+    totalDocs: 11,
+    limit: 5,
     totalPages: 3,
     page,
     hasPrevPage: page > 1,
@@ -47,6 +47,34 @@ function carregar({ usuario = { _id: usuarioId, perfil: 'USUARIO', situacao: 'AT
     jsx: (type, props, key) => ({ type, props: props ?? {}, key }),
     jsxs: (type, props, key) => ({ type, props: props ?? {}, key }),
   };
+
+  function carregarPaginacaoLinks() {
+    const contexto = {
+      exports: {},
+      URLSearchParams,
+      require(nome) {
+        if (nome === 'react/jsx-runtime') return JSX;
+        if (nome === 'next/link') return { __esModule: true, default: Link };
+        if (nome === 'lucide-react') return {
+          ChevronLeftIcon: function ChevronLeftIcon() {},
+          ChevronRightIcon: function ChevronRightIcon() {},
+          MoreHorizontalIcon: function MoreHorizontalIcon() {},
+        };
+        if (nome === '@/components/ui/button') return { buttonVariants: () => 'button' };
+        if (nome === '@/lib/utils') return { cn: (...classes) => classes.filter(Boolean).join(' ') };
+        throw new Error('Import inesperado no componente de paginação: ' + nome);
+      },
+    };
+    const path = new URL('../components/shared/paginacao-links.tsx', import.meta.url);
+    const source = readFileSync(path, 'utf8');
+    const output = ts.transpileModule(source, {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
+    }).outputText;
+    vm.runInNewContext(output, contexto);
+    return contexto.exports.PaginacaoLinks;
+  }
+
+  const PaginacaoLinks = carregarPaginacaoLinks();
   const icons = Object.fromEntries(['Clock', 'CheckCircle2', 'XCircle', 'Ban', 'User', 'Calendar', 'MapPin', 'Package'].map((name) => [name, function Icon() {}]));
   const contexto = {
     exports: {},
@@ -67,6 +95,7 @@ function carregar({ usuario = { _id: usuarioId, perfil: 'USUARIO', situacao: 'AT
           return resposta;
         },
       };
+      if (nome === '@/components/shared/paginacao-links') return { PaginacaoLinks };
       if (nome === '@/components/perfil/confirmar-recebimento-form') return { ConfirmarRecebimentoForm: function ConfirmarRecebimentoForm() {} };
       if (nome === '@/components/feed/feed-retry') return { FeedRetry: function FeedRetry() {} };
       throw new Error('Import inesperado: ' + nome);
@@ -85,23 +114,26 @@ function carregar({ usuario = { _id: usuarioId, perfil: 'USUARIO', situacao: 'AT
   };
 }
 
-function links(node) {
+function elementos(node, predicado) {
   const found = [];
   function visit(value) {
     if (Array.isArray(value)) return value.forEach(visit);
     if (!value || typeof value !== 'object') return;
-    if (value.type === Link) found.push(value.props);
+    if (predicado(value)) found.push(value);
+    else if (typeof value.type === 'function') visit(value.type(value.props));
     visit(value.props?.children);
   }
   visit(node);
   return found;
 }
 
-function texto(node) {
-  if (Array.isArray(node)) return node.map(texto).join(' ');
-  if (typeof node === 'string' || typeof node === 'number') return String(node);
-  if (!node || typeof node !== 'object') return '';
-  return texto(node.props?.children);
+function links(node) {
+  return elementos(node, (value) => value.type === Link).map(({ props }) => props);
+}
+
+function paginasAtivas(node) {
+  return elementos(node, (value) => value.type === 'span' && value.props?.['aria-current'] === 'page')
+    .map(({ props }) => props.children);
 }
 
 test('usa o parâmetro oficial de escopo e paginação para usuário comum e administrador', async () => {
@@ -112,23 +144,26 @@ test('usa o parâmetro oficial de escopo e paginação para usuário comum e adm
     assert.deepEqual(JSON.parse(JSON.stringify(app.chamadas[0].options.params)), {
       usuario_interessado_id: usuarioId,
       page: 2,
-      limit: 20,
+      limit: 5,
     });
     assert.equal(app.chamadas[0].path, 'interesses');
     assert.equal(app.timeouts[0], 10000);
-    assert.match(texto(tree).replace(/\s+/g, ' '), /Página 2 de 3/);
-    assert.deepEqual(links(tree).map((link) => link.href).filter((href) => href.startsWith('?page=')), ['?page=1', '?page=3']);
+    assert.deepEqual(paginasAtivas(tree), [2]);
+    assert.deepEqual([...new Set(links(tree)
+      .map((link) => new URL(link.href, 'https://example.test'))
+      .filter((link) => link.pathname === '/perfil/minhas-solicitacoes')
+      .map((link) => link.search))], ['?page=1', '?page=3']);
   }
 });
 
 test('normaliza páginas malformadas ou fora da faixa segura para página 1', async () => {
   for (const input of ['0', '-1', '1.5', '1e2', '9007199254740992', 'texto']) {
-    const app = carregar({ resposta: paginado(1, { totalPages: 1, hasPrevPage: false, hasNextPage: false }) });
+    const app = carregar({ resposta: paginado(1, { totalDocs: 1, totalPages: 1, hasPrevPage: false, hasNextPage: false }) });
     await app.render(input);
     assert.deepEqual(JSON.parse(JSON.stringify(app.chamadas[0].options.params)), {
       usuario_interessado_id: usuarioId,
       page: 1,
-      limit: 20,
+      limit: 5,
     });
   }
 });
