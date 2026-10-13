@@ -29,7 +29,7 @@ O link de problema técnico na ajuda usa o GitLab e exige acesso ao projeto. Nã
 
 ## Autenticação e contrato
 
-Server Actions usam a fachada de domínio `/auth/login` e `/usuario`; o token opaco fica em cookie HttpOnly e é encaminhado à API pelo servidor. Os endpoints nativos do Better Auth não substituem as políticas do projeto. Sessões válidas são verificadas também antes de submeter login/cadastro em abas antigas; erros de infraestrutura mostram recuperação e não são tratados como expiração.
+Os fluxos de login, cadastro, sessão, logout e recuperação de senha usam o SDK Better Auth e os endpoints nativos em `/api/auth`. O token opaco fica em cookie HttpOnly; as Server Actions e páginas verificam a sessão pelo Better Auth antes de consultar os dados do domínio. A API mantém as validações de CPF, senha e situação da conta. Sessões válidas são verificadas também antes de submeter login/cadastro em abas antigas; erros de infraestrutura mostram recuperação e não são tratados como expiração.
 
 As telas administrativas mantêm `pagina` no estado da interface e enviam `page`/`limit` na consulta HTTP. Auditoria aceita alvos de usuário, item, denúncia ou removidos; o texto livre não permite inferir sozinho a medida aplicada pelo backend.
 
@@ -54,10 +54,10 @@ O modo de desenvolvimento abre em `http://localhost:6006`. A build gera `storybo
 
 ## Publicação
 
-`.gitlab-ci.yml` valida pushes e MRs. Um push na `dev` protegida publica **Preview** com target explícito. Um push na `main` protegida usa **Production**, quando essa branch contiver o pipeline. A missão atual não autoriza integrar `dev` na `main`.
+`.gitlab-ci.yml` valida pushes e MRs. Um push na `dev` protegida publica **Preview** com target explícito. Um push na `main` protegida usa **Production**, quando essa branch contiver o pipeline.
 
 `VERCEL_TOKEN` é configurado pelo responsável no GitLab como masked/protected/hidden, com escopos separados `preview` e `production`. IDs públicos do projeto estão no pipeline; o valor do token nunca deve ser colocado no repositório. Preview usa a API remota e não oferece um banco isolado. Sucesso da build e disponibilidade de Preview não comprovam atualização do domínio Production.
 
 ## Limitações conhecidas
 
-Há alertas residuais de dependências acompanhados nas issues. Parte dos testes de navegador usa API sintética para estados raros; envio real de e-mail, operação Docker e regras de exposição do banco exigem evidência própria. A fonte Figma é referência funcional; o design aplicado e os componentes atuais prevalecem. Preserve responsáveis, telas e branches dos colegas ao complementar integrações.
+Há alertas residuais de dependências acompanhados nas issues. O envio real de recuperação de senha depende da configuração SMTP da API. A fonte Figma é referência funcional; o design aplicado e os componentes atuais prevalecem.
