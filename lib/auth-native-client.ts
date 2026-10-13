@@ -16,6 +16,8 @@ function criarClienteAuthNativo() {
     fetchOptions: {
       credentials: "omit",
       retry: 0,
+      // Chamadas das Server Actions precisam de Origin para o CSRF em produção.
+      headers: { Origin: new URL(baseURL).origin },
     },
     plugins: [
       inferAdditionalFields({
@@ -80,7 +82,10 @@ export async function redefinirSenhaNativa(newPassword: string, token: string) {
 export async function consultarSessaoNativa(token: string) {
   return criarClienteAuthNativo().getSession({
     fetchOptions: {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        Origin: new URL(process.env.NEXT_PUBLIC_API_URL!).origin,
+        Authorization: `Bearer ${token}`,
+      },
       signal: AbortSignal.timeout(AUTH_TIMEOUT_MS),
     },
   });
@@ -89,7 +94,10 @@ export async function consultarSessaoNativa(token: string) {
 export async function encerrarSessaoNativa(token: string) {
   return criarClienteAuthNativo().signOut({
     fetchOptions: {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        Origin: new URL(process.env.NEXT_PUBLIC_API_URL!).origin,
+        Authorization: `Bearer ${token}`,
+      },
       signal: AbortSignal.timeout(AUTH_TIMEOUT_MS),
     },
   });

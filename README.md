@@ -31,6 +31,8 @@ O link de problema técnico na ajuda usa o GitLab e exige acesso ao projeto. Nã
 
 Os fluxos de login, cadastro, sessão, logout e recuperação de senha usam o SDK Better Auth e os endpoints nativos em `/api/auth`. O token opaco fica em cookie HttpOnly; as Server Actions e páginas verificam a sessão pelo Better Auth antes de consultar os dados do domínio. A API mantém as validações de CPF, senha e situação da conta. Sessões válidas são verificadas também antes de submeter login/cadastro em abas antigas; erros de infraestrutura mostram recuperação e não são tratados como expiração.
 
+Nas chamadas das Server Actions, o cliente envia `Origin` derivado de `NEXT_PUBLIC_API_URL`, incluindo as chamadas com Bearer. Essa origem deve ser confiável na API; a proteção de origem do Better Auth permanece habilitada em produção.
+
 As telas administrativas mantêm `pagina` no estado da interface e enviam `page`/`limit` na consulta HTTP. Auditoria aceita alvos de usuário, item, denúncia ou removidos; o texto livre não permite inferir sozinho a medida aplicada pelo backend.
 
 ## Verificar

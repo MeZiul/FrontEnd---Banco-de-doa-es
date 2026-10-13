@@ -73,7 +73,7 @@ test("Better Auth SDK envia login nativo e retorna o token para a ponte HttpOnly
     assert.deepEqual(fixture.requisicoes[0], {
       method: "POST",
       path: "/api/auth/sign-in/email",
-      origin: undefined,
+      origin: fixture.baseURL,
       authorization: undefined,
       cookie: undefined,
       body: {
@@ -114,6 +114,7 @@ test("erro de credenciais é preservado sem repetir a requisição", async () =>
     );
     assert.equal(fixture.requisicoes.length, 1);
     assert.equal(fixture.requisicoes[0].path, "/api/auth/sign-in/email");
+    assert.equal(fixture.requisicoes[0].origin, fixture.baseURL);
     assert.equal(fixture.requisicoes[0].body.rememberMe, true);
     assert.equal(resposta.data, null);
     assert.equal(resposta.error?.status, 401);
@@ -143,6 +144,7 @@ test("cadastro usa sign-up.email com campos adicionais e sem criar sessão", asy
       uf: "MT",
     });
     assert.equal(fixture.requisicoes[0].path, "/api/auth/sign-up/email");
+    assert.equal(fixture.requisicoes[0].origin, fixture.baseURL);
     assert.deepEqual(fixture.requisicoes[0].body, {
       name: "Pessoa Exemplo",
       email: "pessoa@example.test",
@@ -176,6 +178,7 @@ test("solicitação de senha usa o endpoint nativo e o callback do frontend", as
       fixture.requisicoes[0].path,
       "/api/auth/request-password-reset",
     );
+    assert.equal(fixture.requisicoes[0].origin, fixture.baseURL);
     assert.deepEqual(fixture.requisicoes[0].body, {
       email: "pessoa@example.test",
       redirectTo: "https://frontend.example.test/redefinir-senha",
@@ -198,6 +201,7 @@ test("redefinição envia apenas nova senha e token ao SDK", async () => {
       "reset-token-fixture",
     );
     assert.equal(fixture.requisicoes[0].path, "/api/auth/reset-password");
+    assert.equal(fixture.requisicoes[0].origin, fixture.baseURL);
     assert.deepEqual(fixture.requisicoes[0].body, {
       newPassword: "NovaSenha!234",
       token: "reset-token-fixture",
@@ -216,6 +220,7 @@ test("get-session valida por Bearer e trata resposta null como sessão inexisten
     const resposta = await consultarSessaoNativa("token-fixture");
     assert.equal(fixture.requisicoes[0].method, "GET");
     assert.equal(fixture.requisicoes[0].path, "/api/auth/get-session");
+    assert.equal(fixture.requisicoes[0].origin, fixture.baseURL);
     assert.equal(fixture.requisicoes[0].authorization, "Bearer token-fixture");
     assert.equal(fixture.requisicoes[0].cookie, undefined);
     assert.equal(resposta.data, null);
@@ -235,6 +240,7 @@ test("sign-out revoga sessão por Bearer sem depender de cookie cross-site", asy
     const resposta = await encerrarSessaoNativa("token-fixture");
     assert.equal(fixture.requisicoes[0].method, "POST");
     assert.equal(fixture.requisicoes[0].path, "/api/auth/sign-out");
+    assert.equal(fixture.requisicoes[0].origin, fixture.baseURL);
     assert.equal(fixture.requisicoes[0].authorization, "Bearer token-fixture");
     assert.equal(fixture.requisicoes[0].cookie, undefined);
     assert.equal(resposta.error, null);
