@@ -21,4 +21,4 @@ validate:
     - npm run lint
     - npm run build
   variables:
-    NEXT_PUBLIC_API_URL: "https://api.doai.fs.fslab.dev"
+    NEXT_PUBLIC_API_URL: "https://doai.app.fslab.dev"
