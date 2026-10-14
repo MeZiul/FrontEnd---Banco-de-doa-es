@@ -14,12 +14,14 @@ Na VM, confira o hash do arquivo transferido antes de carregar a imagem. Preserv
 
 ```sh
 docker load -i frontend-COMMIT.tar
-DOAI_FRONTEND_IMAGE=doai-frontend:COMMIT docker compose -f compose.production.yml up -d
-docker compose -f compose.production.yml ps
-curl --fail http://127.0.0.1/
+DOAI_FRONTEND_IMAGE=doai-frontend:COMMIT docker compose -f compose.production.yml -f compose.tls.yml up -d
+docker compose -f compose.production.yml -f compose.tls.yml ps
+curl --fail https://doai-doa.app.fslab.dev/
 ```
 
-A porta 80 da VM encaminha para a porta 3000 do container. O domínio público deve passar pelo proxy HTTPS da infraestrutura. Esse proxy precisa preservar Host, X-Forwarded-Host e X-Forwarded-Proto para as Server Actions e os cookies seguros. Confira também os assets, busca, login, redirecionamento de usuário autenticado, logout e chamadas à API pelo domínio público; uma resposta local não comprova o acesso externo.
+O encaminhamento FSLab desta VM usa HTTPS na porta 80. Use os dois arquivos Compose: `compose.tls.yml` coloca a entrada TLS na porta 80, que encaminha para o Next.js na porta 3000 da rede Docker. Copie a pasta `deployment` para `~/doai-frontend/deployment`. O diretório privado `~/doai-frontend/tls` contém `key.pem` e `cert.pem`, legíveis pelo UID 1001; chave e certificado nunca entram na imagem ou no Git. O certificado público do domínio é administrado pela FSLab; o certificado interno precisa ser compatível com a política de confiança desse proxy e renovado antes de expirar. Não execute apenas o Compose base nessa configuração, pois ele atenderia HTTP onde o proxy envia TLS.
+
+A entrada preserva Host e X-Forwarded-Host e informa X-Forwarded-Proto HTTPS para as Server Actions e os cookies seguros. Confira também os assets, busca, login, redirecionamento de usuário autenticado, logout e chamadas à API pelo domínio público; uma resposta local não comprova o acesso externo.
 
 `NEXT_PUBLIC_API_URL` é definido no build. Para trocar a API, gere uma nova imagem. Não transfira arquivos `.env` de desenvolvimento, credenciais de login dev, chave SSH ou tokens Vercel na imagem. O contexto Docker exclui esses arquivos.
 

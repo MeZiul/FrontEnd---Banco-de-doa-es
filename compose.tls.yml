@@ -1,0 +1,31 @@
+# FSLab encaminha HTTPS para a porta 80 desta VM.
+# Certificado e chave ficam exclusivamente no host, fora do repositório.
+services:
+  frontend:
+    ports: !reset []
+  tls:
+    image: ${DOAI_FRONTEND_IMAGE:?Defina a imagem revisada do frontend}
+    command: ["node", "/opt/doai/tls-proxy.mjs"]
+    restart: unless-stopped
+    ports:
+      - "80:8443"
+    depends_on:
+      frontend:
+        condition: service_healthy
+    volumes:
+      - ./deployment/tls-proxy.mjs:/opt/doai/tls-proxy.mjs:ro
+      - ./tls:/run/tls:ro
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 64
+    mem_limit: 96m
+    memswap_limit: 96m
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('node:https').get({hostname:'127.0.0.1',port:8443,rejectUnauthorized:false},r=>{r.resume();process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
