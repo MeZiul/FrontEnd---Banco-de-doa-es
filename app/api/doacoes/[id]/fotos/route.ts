@@ -93,7 +93,7 @@ export async function POST(
       throw new ErroDoacao("Envie uma foto por vez.");
     }
     validarFotos([entradas[0][1]], 1);
-    const api = process.env.NEXT_PUBLIC_API_URL;
+    const api = process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL;
     if (!api) throw new Error("API indisponível");
     const resposta = await fetch(
       new URL(`itemdoacao/${id}/fotos`, `${api.replace(/\/$/, "")}/`),

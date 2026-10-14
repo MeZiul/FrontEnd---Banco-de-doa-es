@@ -25,4 +25,6 @@ A entrada preserva Host e X-Forwarded-Host e informa X-Forwarded-Proto HTTPS par
 
 `NEXT_PUBLIC_API_URL` é definido no build. Para trocar a API, gere uma nova imagem. Não transfira arquivos `.env` de desenvolvimento, credenciais de login dev, chave SSH ou tokens Vercel na imagem. O contexto Docker exclui esses arquivos.
 
+Quando frontend e API estão em VMs da mesma rede privada, configure `API_INTERNAL_URL` no ambiente de execução do Compose para o endereço interno da API. Essa variável só é usada nas chamadas do servidor: catálogo, sessão Better Auth, ações e upload. O Origin de autenticação continua sendo a origem pública da API, preservando a validação CSRF. Sem essa variável, o servidor usa a URL pública. Não exponha o endereço privado em uma variável `NEXT_PUBLIC_`; imagens exibidas diretamente pelo navegador continuam dependendo da URL pública da API. Restrinja o acesso à rede privada conforme a política da infraestrutura.
+
 O GitLab continua executando testes, lint e build. Os jobs de publicação na Vercel foram retirados. Como o acesso SSH da VM está limitado à máquina de desenvolvimento, o executor GitLab não faz publicação direta: a imagem validada deve ser transferida dessa máquina. Nenhuma integração entre `dev` e `main` é necessária.

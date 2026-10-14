@@ -2,6 +2,8 @@ services:
   frontend:
     image: ${DOAI_FRONTEND_IMAGE:?Defina a imagem revisada do frontend}
     restart: unless-stopped
+    environment:
+      API_INTERNAL_URL: ${API_INTERNAL_URL:-}
     ports:
       - "80:3000"
     read_only: true
