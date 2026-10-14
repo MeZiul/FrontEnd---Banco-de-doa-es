@@ -1,3 +1,5 @@
+> Fluxo descontinuado em 13/10/2026. O frontend agora é hospedado na VM. Consulte [deploy-vm.md](deploy-vm.md). Os comandos abaixo são apenas histórico e os jobs Vercel foram retirados do pipeline.
+
 # Publicação por branch no GitLab FSLab
 
 O projeto `doai-banco-de-doacoes` pertence ao escopo `guilherme-dalanhols-projects` e foi criado/vinculado com Vercel CLI63.1.0. Runtime configurado Node24 e framework Next.js. URL da API: `https://api.doai.fs.fslab.dev`, configurada em `NEXT_PUBLIC_API_URL` nos ambientes Vercel usados.
