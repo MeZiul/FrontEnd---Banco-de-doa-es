@@ -56,9 +56,9 @@ O modo de desenvolvimento abre em `http://localhost:6006`. A build gera `storybo
 
 ## Publicação
 
-`.gitlab-ci.yml` valida pushes e MRs. Um push na `dev` protegida publica **Preview** com target explícito. Um push na `main` protegida usa **Production**, quando essa branch contiver o pipeline.
+O frontend está publicado em `https://doai-doa.app.fslab.dev/`, na VM dedicada, e usa a API pública `https://doai.app.fslab.dev`. `.gitlab-ci.yml` valida pushes e MRs com testes, lint e build; atualmente não executa publicação automática.
 
-`VERCEL_TOKEN` é configurado pelo responsável no GitLab como masked/protected/hidden, com escopos separados `preview` e `production`. IDs públicos do projeto estão no pipeline; o valor do token nunca deve ser colocado no repositório. Preview usa a API remota e não oferece um banco isolado. Sucesso da build e disponibilidade de Preview não comprovam atualização do domínio Production.
+Para publicar na VM, siga o [roteiro de implantação](documentacao/deploy-vm.md). A entrada TLS encaminha para o Next.js, e as chamadas do servidor usam `API_INTERNAL_URL` quando configurada. Use os dois arquivos Compose de produção e TLS, preservando a configuração privada da VM. A mudança de endereço público da API exige nova build, porque `NEXT_PUBLIC_API_URL` é incorporada no bundle. A configuração anterior da Vercel foi substituída por este fluxo; sucesso no pipeline comprova validação, não atualização da VM.
 
 ## Limitações conhecidas
 

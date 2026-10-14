@@ -10,12 +10,12 @@ docker save doai-frontend:COMMIT -o frontend-COMMIT.tar
 scp -P 60011 frontend-COMMIT.tar fslab@cloud.fslab.dev:~/doai-frontend/
 ```
 
-Na VM, confira o hash do arquivo transferido antes de carregar a imagem. Preserve a imagem e o identificador do container anterior antes de qualquer substituição.
+Na VM, em `~/doai-frontend`, confira o hash do arquivo transferido antes de carregar a imagem. Preserve a imagem e o identificador do container anterior antes de qualquer substituição. O arquivo privado `deployment.env` mantém `DOAI_FRONTEND_IMAGE` e, quando necessário, `API_INTERNAL_URL`; atualize somente a referência da imagem revisada e preserve as demais configurações. Esse arquivo deve permanecer fora do Git e legível somente pelos responsáveis pela implantação.
 
 ```sh
 docker load -i frontend-COMMIT.tar
-DOAI_FRONTEND_IMAGE=doai-frontend:COMMIT docker compose -f compose.production.yml -f compose.tls.yml up -d
-docker compose -f compose.production.yml -f compose.tls.yml ps
+docker compose --env-file deployment.env -p doai-frontend -f compose.production.yml -f compose.tls.yml up -d
+docker compose --env-file deployment.env -p doai-frontend -f compose.production.yml -f compose.tls.yml ps
 curl --fail https://doai-doa.app.fslab.dev/
 ```
 
