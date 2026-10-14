@@ -5,9 +5,10 @@ const AUTH_BASE_PATH = "/api/auth";
 const AUTH_TIMEOUT_MS = 10_000;
 
 function criarClienteAuthNativo() {
-  const baseURL = process.env.NEXT_PUBLIC_API_URL;
-  if (!baseURL)
+  const publicURL = process.env.NEXT_PUBLIC_API_URL;
+  if (!publicURL)
     throw new Error("Defina NEXT_PUBLIC_API_URL para conectar à API.");
+  const baseURL = process.env.API_INTERNAL_URL || publicURL;
 
   return createAuthClient({
     baseURL,
@@ -17,7 +18,7 @@ function criarClienteAuthNativo() {
       credentials: "omit",
       retry: 0,
       // Chamadas das Server Actions precisam de Origin para o CSRF em produção.
-      headers: { Origin: new URL(baseURL).origin },
+      headers: { Origin: new URL(publicURL).origin },
     },
     plugins: [
       inferAdditionalFields({
