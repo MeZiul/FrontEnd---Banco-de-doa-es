@@ -4,7 +4,7 @@ ENV NEXT_TELEMETRY_DISABLED=1 CYPRESS_INSTALL_BINARY=0
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-ARG NEXT_PUBLIC_API_URL=https://api.doai.fs.fslab.dev
+ARG NEXT_PUBLIC_API_URL=https://doai.app.fslab.dev
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN node --test tests/*.test.mjs && npm run lint && npm run build
 
@@ -13,7 +13,7 @@ WORKDIR /app
 ARG SOURCE_COMMIT=unknown
 LABEL org.opencontainers.image.revision=$SOURCE_COMMIT
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=3000 NODE_OPTIONS=--max-old-space-size=320
-ARG NEXT_PUBLIC_API_URL=https://api.doai.fs.fslab.dev
+ARG NEXT_PUBLIC_API_URL=https://doai.app.fslab.dev
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN addgroup -S -g 1001 nextjs && adduser -S -u 1001 -G nextjs nextjs
 COPY --from=build --chown=1001:1001 /app/.next/standalone ./

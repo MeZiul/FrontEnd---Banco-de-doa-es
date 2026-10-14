@@ -1,6 +1,6 @@
 # Frontend na VM
 
-O endereço público é https://doai-doa.app.fslab.dev/. O frontend Next.js é publicado como container com `output: standalone`. O build mantém as Server Actions, a sessão Better Auth e o acesso à API em `https://api.doai.fs.fslab.dev`. Não é uma exportação estática.
+O endereço público é https://doai-doa.app.fslab.dev/. O frontend Next.js é publicado como container com `output: standalone`. O build mantém as Server Actions, a sessão Better Auth e o acesso à API em `https://doai.app.fslab.dev`. Não é uma exportação estática.
 
 A VM tem aproximadamente 1 GiB de RAM. Faça o build na máquina de desenvolvimento ou em um executor com recursos suficientes; transfira a imagem pronta para a VM por SSH. O container de execução limita a memória a 512 MiB e o heap Node a 320 MiB, roda como usuário sem privilégios e mantém o filesystem somente leitura, com cache temporário.
 
