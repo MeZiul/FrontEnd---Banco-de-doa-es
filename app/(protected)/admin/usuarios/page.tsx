@@ -30,7 +30,7 @@ export default function AdminUsuariosPage() {
     const paginaAtual = Number.isSafeInteger(pagina) && pagina >= 1 ? pagina : 1;
     const limiteAtual = LIMITES_PERMITIDOS.includes(limit) ? limit : 5;
 
-    const { data, isPending, isError, error, isFetching, refetch } = useQuery<RespostaPaginada<AdminUsuario>>({
+    const { data, isPending, isError, error, isFetching } = useQuery<RespostaPaginada<AdminUsuario>>({
         queryKey: ["adminUsuarios", paginaAtual, limiteAtual],
         queryFn: () => listarUsuarios(paginaAtual, limiteAtual),
     });
@@ -70,17 +70,9 @@ export default function AdminUsuariosPage() {
         });
     }
 
+    // O DataPagination só oferece páginas que existem; basta ignorar a página atual.
     function mudarPagina(destino: number) {
-        const totalPaginas = Math.max(1, data?.totalPages ?? 1);
-
-        if (
-            !Number.isSafeInteger(destino) ||
-            destino < 1 ||
-            destino > totalPaginas ||
-            destino === paginaAtual
-        ) {
-            return;
-        }
+        if (destino === paginaAtual) return;
 
         setPaginacao({ pagina: destino });
     }

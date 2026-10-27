@@ -4,12 +4,14 @@ import AuditoriaCard from "@/components/admin/admin-auditoria-card";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useQueryState, parseAsInteger } from "nuqs";
+import { useQueryStates, parseAsInteger } from "nuqs";
 import { buscarAuditorias } from "./actions";
 
 export default function AdminAuditoriaPage() {
-    const [pagina, setPagina] = useQueryState("pagina", parseAsInteger.withDefault(1));
-    const [limit, setLimit] = useQueryState("limit", parseAsInteger.withDefault(10));
+    const [{ pagina, limit }, setQuery] = useQueryStates({
+        pagina: parseAsInteger.withDefault(1),
+        limit: parseAsInteger.withDefault(10),
+    });
 
     const { data, isPending, isError, refetch } = useQuery({
         queryKey: ["admin", "auditoria", pagina, limit],
@@ -18,9 +20,9 @@ export default function AdminAuditoriaPage() {
 
     const dados = data?.docs ?? [];
 
+    // Atualiza limite e página juntos, numa única mudança de URL.
     function alterarLimite(novoLimite: number) {
-        setLimit(novoLimite);
-        setPagina(1);
+        setQuery({ limit: novoLimite, pagina: 1 });
     }
 
     return (
@@ -108,7 +110,7 @@ export default function AdminAuditoriaPage() {
                         <div className="flex items-center justify-between gap-4 border-t pt-4">
                             <button
                                 type="button"
-                                onClick={() => setPagina(Math.max(1, pagina - 1))}
+                                onClick={() => setQuery({ pagina: pagina - 1 })}
                                 disabled={!data.hasPrevPage || isPending}
                                 className="rounded-md border px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                             >
@@ -121,7 +123,7 @@ export default function AdminAuditoriaPage() {
 
                             <button
                                 type="button"
-                                onClick={() => setPagina(pagina + 1)}
+                                onClick={() => setQuery({ pagina: pagina + 1 })}
                                 disabled={!data.hasNextPage || isPending}
                                 className="rounded-md border px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                             >
