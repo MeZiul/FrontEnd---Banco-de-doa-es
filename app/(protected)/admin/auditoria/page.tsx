@@ -87,7 +87,7 @@ export default function AdminAuditoriaPage() {
                           <p>
                             Não foi possível carregar os registros de auditoria.
                           </p>
-                          <button type="button" onClick={() => void refetch()} className="rounded-md border px-4 py-2 text-blue-800">Tentar novamente</button>
+                          <button type="button" onClick={() => refetch()} className="rounded-md border px-4 py-2 text-blue-800">Tentar novamente</button>
                         </div>
                     )}
 

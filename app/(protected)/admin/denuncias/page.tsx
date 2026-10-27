@@ -39,7 +39,7 @@ export default function AdminDenunciasPage() {
                     <select
                         id="limite-denuncias"
                         value={limit}
-                        onChange={(event) => { void setQuery({ limit: Number(event.target.value), pagina: 1 }); }}
+                        onChange={(event) => setQuery({ limit: Number(event.target.value), pagina: 1 })}
                         className="rounded-md border bg-background px-3 py-2 text-sm"
                     >
                         <option value={5}>5</option>
@@ -83,7 +83,7 @@ export default function AdminDenunciasPage() {
                 <DataPagination
                     pagina={pagina}
                     totalPaginas={data.totalPages}
-                    aoMudarPagina={(novaPagina: number) => { void setQuery({ pagina: novaPagina }); }}
+                    aoMudarPagina={(novaPagina) => setQuery({ pagina: novaPagina })}
                 />
             )}
         </div>

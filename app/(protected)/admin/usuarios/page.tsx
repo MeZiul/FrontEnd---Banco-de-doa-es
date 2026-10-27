@@ -39,7 +39,7 @@ export default function AdminUsuariosPage() {
     // Corrige os parâmetros inválidos da URL.
     useEffect(() => {
         if (pagina !== paginaAtual || limit !== limiteAtual) {
-            void setPaginacao({
+            setPaginacao({
                 pagina: paginaAtual,
                 limit: limiteAtual,
             });
@@ -53,24 +53,24 @@ export default function AdminUsuariosPage() {
         const totalPaginas = Math.max(1, data.totalPages);
 
         if (paginaAtual > totalPaginas) {
-            void setPaginacao({ pagina: totalPaginas });
+            setPaginacao({ pagina: totalPaginas });
         }
     }, [data, paginaAtual, setPaginacao]);
 
-    async function mudarLimite(valor: string | null) {
+    function mudarLimite(valor: string | null) {
         if (valor === null) return;
 
         const novoLimite = Number(valor);
 
         if (!LIMITES_PERMITIDOS.includes(novoLimite)) return;
 
-        await setPaginacao({
+        setPaginacao({
             pagina: 1,
             limit: novoLimite,
         });
     }
 
-    async function mudarPagina(destino: number) {
+    function mudarPagina(destino: number) {
         const totalPaginas = Math.max(1, data?.totalPages ?? 1);
 
         if (
@@ -82,7 +82,7 @@ export default function AdminUsuariosPage() {
             return;
         }
 
-        await setPaginacao({ pagina: destino });
+        setPaginacao({ pagina: destino });
     }
     return (
         <div className="flex min-h-full flex-1 flex-col gap-5">
@@ -129,9 +129,7 @@ export default function AdminUsuariosPage() {
 
                             <Select
                                 value={String(limiteAtual)}
-                                onValueChange={(valor) =>
-                                    void mudarLimite(valor)
-                                }
+                                onValueChange={mudarLimite}
                                 disabled={isFetching}
                             >
                                 <SelectTrigger
@@ -163,7 +161,7 @@ export default function AdminUsuariosPage() {
                         <DataPagination
                             pagina={paginaAtual}
                             totalPaginas={Math.max(1, data.totalPages)}
-                            aoMudarPagina={(destino) => void mudarPagina(destino)}
+                            aoMudarPagina={mudarPagina}
                         />
                     </div>
 
