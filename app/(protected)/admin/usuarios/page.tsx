@@ -30,7 +30,7 @@ export default function AdminUsuariosPage() {
     const paginaAtual = Number.isSafeInteger(pagina) && pagina >= 1 ? pagina : 1;
     const limiteAtual = LIMITES_PERMITIDOS.includes(limit) ? limit : 5;
 
-    const { data, isPending, isError, error, isFetching, refetch } = useQuery<RespostaPaginada<AdminUsuario>>({
+    const { data, isPending, isError, error, isFetching } = useQuery<RespostaPaginada<AdminUsuario>>({
         queryKey: ["adminUsuarios", paginaAtual, limiteAtual],
         queryFn: () => listarUsuarios(paginaAtual, limiteAtual),
     });
@@ -39,7 +39,7 @@ export default function AdminUsuariosPage() {
     // Corrige os parâmetros inválidos da URL.
     useEffect(() => {
         if (pagina !== paginaAtual || limit !== limiteAtual) {
-            void setPaginacao({
+            setPaginacao({
                 pagina: paginaAtual,
                 limit: limiteAtual,
             });
@@ -53,36 +53,28 @@ export default function AdminUsuariosPage() {
         const totalPaginas = Math.max(1, data.totalPages);
 
         if (paginaAtual > totalPaginas) {
-            void setPaginacao({ pagina: totalPaginas });
+            setPaginacao({ pagina: totalPaginas });
         }
     }, [data, paginaAtual, setPaginacao]);
 
-    async function mudarLimite(valor: string | null) {
+    function mudarLimite(valor: string | null) {
         if (valor === null) return;
 
         const novoLimite = Number(valor);
 
         if (!LIMITES_PERMITIDOS.includes(novoLimite)) return;
 
-        await setPaginacao({
+        setPaginacao({
             pagina: 1,
             limit: novoLimite,
         });
     }
 
-    async function mudarPagina(destino: number) {
-        const totalPaginas = Math.max(1, data?.totalPages ?? 1);
+    // O DataPagination só oferece páginas que existem; basta ignorar a página atual.
+    function mudarPagina(destino: number) {
+        if (destino === paginaAtual) return;
 
-        if (
-            !Number.isSafeInteger(destino) ||
-            destino < 1 ||
-            destino > totalPaginas ||
-            destino === paginaAtual
-        ) {
-            return;
-        }
-
-        await setPaginacao({ pagina: destino });
+        setPaginacao({ pagina: destino });
     }
     return (
         <div className="flex min-h-full flex-1 flex-col gap-5">
@@ -129,9 +121,7 @@ export default function AdminUsuariosPage() {
 
                             <Select
                                 value={String(limiteAtual)}
-                                onValueChange={(valor) =>
-                                    void mudarLimite(valor)
-                                }
+                                onValueChange={mudarLimite}
                                 disabled={isFetching}
                             >
                                 <SelectTrigger
@@ -163,7 +153,7 @@ export default function AdminUsuariosPage() {
                         <DataPagination
                             pagina={paginaAtual}
                             totalPaginas={Math.max(1, data.totalPages)}
-                            aoMudarPagina={(destino) => void mudarPagina(destino)}
+                            aoMudarPagina={mudarPagina}
                         />
                     </div>
 
