@@ -12,9 +12,9 @@ import {
 } from "@/lib/auth-native-client";
 import {
   destinoInterno,
+  lerLogin,
   opcoesCookieSessao,
   validarCadastro,
-  validarLogin,
 } from "@/lib/auth-validation";
 
 export type ResultadoAuth = { erro: string };
@@ -62,7 +62,18 @@ function mensagemErroLoginNativo(
   return { erro: "Não foi possível realizar o login. Tente novamente." };
 }
 
-function mensagemErroCadastroNativo(status: number | undefined): ResultadoAuth {
+type ErroNativo = {
+  status?: number;
+  message?: string;
+  issues?: { message?: string }[];
+};
+
+function mensagemErroCadastroNativo(erro: ErroNativo): ResultadoAuth {
+  const { status } = erro;
+  if (status === 400) {
+    const mensagem = erro.issues?.[0]?.message || erro.message;
+    if (mensagem) return { erro: mensagem };
+  }
   if (status === 409) return { erro: "Já existe uma conta com estes dados." };
   if (status === 429) {
     return {
@@ -123,7 +134,7 @@ export async function cadastrar(entrada: unknown): Promise<ResultadoAuth> {
     );
   }
 
-  if (resposta.error) return mensagemErroCadastroNativo(resposta.error.status);
+  if (resposta.error) return mensagemErroCadastroNativo(resposta.error);
   if (!temUsuarioCadastrado(resposta.data)) {
     return { erro: "A API não confirmou a criação da conta. Tente novamente." };
   }
@@ -135,9 +146,7 @@ export async function entrar(
   destino: unknown,
 ): Promise<ResultadoAuth> {
   await exigirVisitante();
-  const resultado = validarLogin(entrada);
-  if (resultado.erro !== undefined) return { erro: resultado.erro };
-  const { email, senha, lembrar } = resultado.dados;
+  const { email, senha, lembrar } = lerLogin(entrada);
 
   let resposta: Awaited<ReturnType<typeof autenticarComEmail>>;
   try {
