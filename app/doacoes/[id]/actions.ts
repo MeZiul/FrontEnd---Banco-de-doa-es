@@ -7,9 +7,9 @@ import { campoDoacao, ErroDoacao, ID_DOACAO } from "@/lib/doacao-validation";
 
 export async function manifestarInteresse(_anterior: { sucesso: boolean; mensagem: string }, dados: FormData) {
   try {
-    const id = campoDoacao(dados, "item_id", 1, 80);
+    const id = campoDoacao(dados, "item_id");
     if (!ID_DOACAO.test(id)) throw new ErroDoacao("Doação inválida.");
-    const mensagem = campoDoacao(dados, "mensagem_interessado", 0, 2000);
+    const mensagem = campoDoacao(dados, "mensagem_interessado");
     await fetchApiAutenticado("interesses", {
       metodo: "POST", body: { item_id: id, ...(mensagem ? { mensagem_interessado: mensagem } : {}) }, signal: AbortSignal.timeout(15000),
     });
@@ -23,13 +23,12 @@ export async function manifestarInteresse(_anterior: { sucesso: boolean; mensage
 
 export async function denunciarDoacao(_anterior: { sucesso: boolean; mensagem: string }, dados: FormData) {
   try {
-    const id = campoDoacao(dados, "item_id", 1, 80);
+    const id = campoDoacao(dados, "item_id");
     if (!ID_DOACAO.test(id)) throw new ErroDoacao("Doação inválida.");
-    const tipo = campoDoacao(dados, "tipo_alvo", 1, 20);
-    if (!["ITEM", "USUARIO"].includes(tipo)) throw new ErroDoacao("Alvo inválido.");
-    const motivo = campoDoacao(dados, "motivo", 1, 40);
-    if (!["CONTEUDO_INAPROPRIADO", "ITEM_PROIBIDO", "FRAUDE", "ASSEDIO", "SPAM", "OUTRO"].includes(motivo)) throw new ErroDoacao("Motivo inválido.");
-    const descricao = campoDoacao(dados, "descricao", 0, 2000);
+    // Tipo e motivo são validados pelo Zod da API.
+    const tipo = campoDoacao(dados, "tipo_alvo");
+    const motivo = campoDoacao(dados, "motivo");
+    const descricao = campoDoacao(dados, "descricao");
     const item = await fetchApiAutenticado<{ usuario_id: { _id: string } }>(`itemdoacao/${id}`, { signal: AbortSignal.timeout(10000) });
     await fetchApiAutenticado("denuncias", { metodo: "POST", signal: AbortSignal.timeout(15000), body: {
       tipo_alvo: tipo, motivo, ...(descricao ? { descricao } : {}),
@@ -44,11 +43,11 @@ export async function denunciarDoacao(_anterior: { sucesso: boolean; mensagem: s
 
 export async function avaliarDoacao(_anterior: { sucesso: boolean; mensagem: string }, dados: FormData) {
   try {
-    const id = campoDoacao(dados, "item_id", 1, 80);
+    const id = campoDoacao(dados, "item_id");
     if (!ID_DOACAO.test(id)) throw new ErroDoacao("Doação inválida.");
-    const nota = Number(campoDoacao(dados, "nota", 1, 1));
-    if (!Number.isInteger(nota) || nota < 1 || nota > 5) throw new ErroDoacao("Escolha uma nota de 1 a 5.");
-    const comentario = campoDoacao(dados, "comentario", 0, 2000);
+    // A nota (inteiro de 1 a 5) é validada pelo Zod da API.
+    const nota = Number(campoDoacao(dados, "nota"));
+    const comentario = campoDoacao(dados, "comentario");
     const usuario = await fetchApiAutenticado<{ _id: string }>("perfil", { signal: AbortSignal.timeout(10000) });
     const item = await fetchApiAutenticado<{ status: string; interesse_aceito_id?: string; usuario_id: { _id: string } }>(`itemdoacao/${id}`, { signal: AbortSignal.timeout(10000) });
     if (item.status !== "DOADO" || !item.interesse_aceito_id) throw new ErroDoacao("A doação precisa estar concluída para avaliar.");
