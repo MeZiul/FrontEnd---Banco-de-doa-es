@@ -9,10 +9,12 @@ function ambiente({
   token = "sessao-sintetica",
   situacao = "ATIVO",
   sessionValid = true,
+  falhaEnvio = null,
 } = {}) {
   const chamadas = [],
     chamadasPerfil = [],
-    sessoes = [];
+    sessoes = [],
+    logs = [];
   function modulo(path, require) {
     const source = readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
     const code = ts.transpileModule(source, {
@@ -31,8 +33,10 @@ function ambiente({
       Uint8Array,
       AbortSignal,
       process: { env: { NEXT_PUBLIC_API_URL: "http://api.local" } },
+      console: { error: (...args) => logs.push(args) },
       fetch: async (url, options) => {
         chamadas.push({ url, options });
+        if (falhaEnvio) throw falhaEnvio;
         return Response.json({ fotos: [], mensagem: "Foto adicionada" });
       },
     };
@@ -40,8 +44,6 @@ function ambiente({
     return contexto.exports;
   }
   const validation = modulo("lib/doacao-validation.ts", (name) => {
-    if (name === "@/lib/feed") return { UFS: ["RO"] };
-    if (name === "@/types/feed") return { CONDICOES: { NOVO: "Novo" } };
     throw new Error(name);
   });
   class ErroApi extends Error {}
@@ -72,6 +74,7 @@ function ambiente({
     chamadas,
     chamadasPerfil,
     sessoes,
+    logs,
   };
 }
 function pedido({
@@ -88,8 +91,8 @@ function pedido({
     body,
   });
 }
-test("CSRF rejeita origem ausente ou externa mesmo com cookie de sessão", async () => {
-  for (const origin of ["", "https://ataque.local", "http://127.0.0.1:9999"]) {
+test("CSRF rejeita origem ausente, malformada ou externa mesmo com cookie de sessão", async () => {
+  for (const origin of ["", "nao-e-url", "https://ataque.local", "http://127.0.0.1:9999"]) {
     const app = ambiente();
     assert.equal((await app.executar(pedido({ origin }))).status, 403);
     assert.equal(app.chamadas.length, 0);
@@ -136,6 +139,22 @@ test("multipart rejeita campo extra e SVG antes do envio à API", async () => {
     assert.equal((await app.executar(pedido(options))).status, 400);
     assert.equal(app.chamadas.length, 0);
   }
+});
+test("falha inesperada no envio registra a causa no log e não a expõe na resposta", async () => {
+  const causa = new Error("connect ECONNREFUSED 10.0.0.5:7340");
+  const app = ambiente({ falhaEnvio: causa });
+  const response = await app.executar(pedido());
+  assert.equal(response.status, 502);
+  assert.doesNotMatch((await response.json()).mensagem, /ECONNREFUSED/);
+  assert.equal(app.logs.length, 1);
+  assert.match(app.logs[0][0], new RegExp(id));
+  assert.equal(app.logs[0][1], causa);
+});
+test("foto recusada não é registrada como falha inesperada", async () => {
+  const app = ambiente();
+  const svg = new File(["svg"], "qa.svg", { type: "image/svg+xml" });
+  assert.equal((await app.executar(pedido({ file: svg }))).status, 400);
+  assert.equal(app.logs.length, 0);
 });
 test("corpo chunked acima do limite é interrompido antes de parsear multipart", async () => {
   const app = ambiente();
