@@ -24,14 +24,13 @@ function ambiente({ usuario = usuarioId, status = "DOADO", erro = null } = {}) {
       if (nome === "next/cache") return { revalidatePath() {} };
       if (nome === "next/navigation") return { unstable_rethrow(e) { if (e?.redirect) throw e; } };
       if (nome === "@/lib/api") return { ErroApi };
-      if (nome === "@/lib/feed") return { UFS: ["MT", "RO", "SP"] };
-      if (nome === "@/types/feed") return { CONDICOES: { NOVO: "Novo", USADO_BOM: "Bom" } };
       if (nome === "@/lib/doacao-validation") return carregar("lib/doacao-validation.ts");
       if (nome === "@/lib/auth-server") return {
         getUsuarioLogado: async () => ({ _id: usuario }),
         fetchApiAutenticado: async (path, opcoes) => {
           chamadas.push({ path, opcoes });
-          if (erro) throw erro;
+          // Texto = mensagem de erro da API (ErroApi); objeto = erro lançado como está.
+          if (erro) throw typeof erro === "string" ? new ErroApi(erro) : erro;
           if (path === "perfil") return { _id: usuario };
           if (path === `itemdoacao/${itemId}`) return { usuario_id: { _id: usuarioId }, status, interesse_aceito_id: interesseId };
           if (path === `interesses/${interesseId}`) return { usuario_interessado_id: { _id: interessadoId } };
@@ -56,17 +55,19 @@ test("criação não repassa autoria, estado, fotos ou campos administrativos", 
   assert.equal(chamada.opcoes.body.uf, "MT");
   for (const campo of ["usuario_id", "status", "perfil", "fotos"]) assert.equal(Object.hasOwn(chamada.opcoes.body, campo), false);
 });
-test("UF/categoria/condição inválidas não chegam à API", async () => {
-  for (const extra of [{ uf: "ZZ" }, { categoria_id: "../admin" }, { condicao_item: "PROIBIDO" }]) {
-    const app = ambiente(); assert.equal((await app.criar(form({ ...campos, ...extra }))).sucesso, false); assert.equal(app.chamadas.length, 0);
-  }
+test("dados recusados pelo Zod da API mostram a mensagem do campo", async () => {
+  const app = ambiente({ erro: "Condição do item inválida." });
+  const resultado = await app.criar(form({ ...campos, condicao_item: "PROIBIDO" }));
+  assert.equal(resultado.sucesso, false);
+  assert.equal(resultado.mensagem, "Condição do item inválida.");
+  assert.equal(app.chamadas.at(-1).opcoes.body.condicao_item, "PROIBIDO");
 });
-test("interesse só envia item e mensagem e limita texto", async () => {
+test("interesse só envia item e mensagem, e ID inválido não chega à API", async () => {
   const app = ambiente();
   assert.equal((await app.manifestarInteresse(vazio, form({ item_id: itemId, mensagem_interessado: " Gostaria da mesa. ", usuario_interessado_id: "outro", status: "ACEITO" }))).sucesso, true);
   const payload = app.chamadas.at(-1).opcoes.body;
   assert.deepEqual(JSON.parse(JSON.stringify(payload)), { item_id: itemId, mensagem_interessado: "Gostaria da mesa." });
-  assert.equal((await app.manifestarInteresse(vazio, form({ item_id: itemId, mensagem_interessado: "x".repeat(2001) }))).sucesso, false);
+  assert.equal((await app.manifestarInteresse(vazio, form({ item_id: "../admin", mensagem_interessado: "" }))).sucesso, false);
   assert.equal(app.chamadas.length, 1);
 });
 test("denúncia do doador deriva alvo do anúncio em vez de aceitar ID do cliente", async () => {
