@@ -12,7 +12,7 @@ const interesseId = "50000000-0000-0000-0000-000000000001";
 const vazio = { sucesso: false, mensagem: "" };
 function form(campos) { const dados = new FormData(); for (const [nome, valor] of Object.entries(campos)) dados.set(nome, valor); return dados; }
 
-function ambiente({ usuario = usuarioId, status = "DOADO", erro = null } = {}) {
+function ambiente({ usuario = usuarioId, status = "DOADO", erro = null, erroEscrita = null } = {}) {
   const chamadas = [];
   class ErroApi extends Error {}
   const cache = new Map();
@@ -31,6 +31,8 @@ function ambiente({ usuario = usuarioId, status = "DOADO", erro = null } = {}) {
           chamadas.push({ path, opcoes });
           // Texto = mensagem de erro da API (ErroApi); objeto = erro lançado como está.
           if (erro) throw typeof erro === "string" ? new ErroApi(erro) : erro;
+          // Só o POST falha: as leituras anteriores à escrita continuam funcionando.
+          if (erroEscrita && opcoes?.metodo === "POST") throw new ErroApi(erroEscrita);
           if (path === "perfil") return { _id: usuario };
           if (path === `itemdoacao/${itemId}`) return { usuario_id: { _id: usuarioId }, status, interesse_aceito_id: interesseId };
           if (path === `interesses/${interesseId}`) return { usuario_interessado_id: { _id: interessadoId } };
@@ -42,7 +44,7 @@ function ambiente({ usuario = usuarioId, status = "DOADO", erro = null } = {}) {
     vm.runInNewContext(compilado, contexto);
     cache.set(path, contexto.exports); return contexto.exports;
   }
-  return { criar: carregar("app/(protected)/doacoes/nova/actions.ts").criarDoacao, ...carregar("app/doacoes/[id]/actions.ts"), validar: carregar("lib/doacao-validation.ts"), chamadas };
+  return { criar: carregar("app/(protected)/doacoes/nova/actions.ts").criarDoacao, ...carregar("app/doacoes/[id]/actions.ts"), validar: carregar("lib/doacao-validation.ts"), marcarLidas: carregar("app/(protected)/perfil/notificacoes/actions.ts").marcarLidas, chamadas };
 }
 const campos = { titulo: "Mesa de estudos", descricao: "Uma mesa em bom estado para estudar.", categoria_id: categoriaId, condicao_item: "USADO_BOM", cidade: "Cuiabá", uf: "mt", bairro: "", condicoes_doacao: "" };
 
@@ -85,6 +87,27 @@ test("avaliação deriva participante e sentido; visitante e item aberto são bl
   assert.equal((await app.avaliarDoacao(vazio, form({ item_id: itemId, nota: "5", comentario: " Ótima experiência. ", avaliado_id: "outro", tipo: "DOADOR_PARA_INTERESSADO" }))).sucesso, true);
   const payload = app.chamadas.at(-1).opcoes.body;
   assert.equal(payload.avaliado_id, usuarioId); assert.equal(payload.tipo, "INTERESSADO_PARA_DOADOR"); assert.equal(payload.comentario, "Ótima experiência.");
+});
+test("denúncia com motivo inválido é recusada pelo Zod da API e mostra a mensagem dela", async () => {
+  const app = ambiente({ erroEscrita: "Motivo de denúncia inválido." });
+  const resultado = await app.denunciarDoacao(vazio, form({ item_id: itemId, tipo_alvo: "ITEM", motivo: "INVENTADO", descricao: "" }));
+  assert.equal(resultado.sucesso, false);
+  assert.equal(resultado.mensagem, "Motivo de denúncia inválido.");
+  assert.equal(app.chamadas.at(-1).opcoes.body.motivo, "INVENTADO");
+});
+test("avaliação com nota fora do intervalo é recusada pelo Zod da API e mostra a mensagem dela", async () => {
+  const app = ambiente({ erroEscrita: "Nota máxima é 5" });
+  const resultado = await app.avaliarDoacao(vazio, form({ item_id: itemId, nota: "9", comentario: "" }));
+  assert.equal(resultado.sucesso, false);
+  assert.equal(resultado.mensagem, "Nota máxima é 5");
+  assert.equal(app.chamadas.at(-1).opcoes.body.nota, 9);
+});
+test("ID inválido em denúncia, avaliação e notificação não chega à API", async () => {
+  const app = ambiente();
+  assert.equal((await app.denunciarDoacao(vazio, form({ item_id: "../admin", tipo_alvo: "ITEM", motivo: "SPAM", descricao: "" }))).sucesso, false);
+  assert.equal((await app.avaliarDoacao(vazio, form({ item_id: "../admin", nota: "5", comentario: "" }))).sucesso, false);
+  assert.equal((await app.marcarLidas({}, form({ id: "../admin" }))).erro, "Notificação inválida.");
+  assert.equal(app.chamadas.length, 0);
 });
 test("redirecionamento de sessão expirada não vira mensagem comum", async () => {
   const erro = Object.assign(new Error("Sessão expirada"), { redirect: true });
