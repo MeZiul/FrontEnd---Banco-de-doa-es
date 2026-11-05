@@ -367,6 +367,30 @@ test("cadastro recusado pelo Zod da API mostra a mensagem do campo", async () =>
   }
 });
 
+test("cadastro recusado por outro motivo mantém mensagem localizada, sem expor a da API", async () => {
+  for (const [status, mensagem] of [
+    [409, "Já existe uma conta com estes dados."],
+    [429, "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente."],
+    [500, "Não foi possível criar a conta. Verifique os dados e tente novamente."],
+  ]) {
+    const app = ambiente({
+      signupResponse: { data: null, error: { status, message: "Native server message" } },
+    });
+    const resultado = await app.carregar("app/(auth)/actions.ts").cadastrar({
+      nome: "Maria da Silva",
+      email: "maria@example.test",
+      cpf: "529.982.247-25",
+      telefone: "",
+      cidade: "São Paulo",
+      uf: "SP",
+      senha: "Teste123!",
+      confirmarSenha: "Teste123!",
+      termos: true,
+    });
+    assert.equal(resultado.erro, mensagem);
+  }
+});
+
 for (const [status, mensagem] of [
   [400, "E-mail ou senha inválidos."],
   [401, "E-mail ou senha inválidos."],
