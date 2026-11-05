@@ -125,6 +125,29 @@ test("senha fraca recusada pela API mostra a regra que faltou", async () => {
   assert.equal(app.chamadas.length, 1);
 });
 
+test("outro erro 400 na redefinição continua como link inválido, sem expor a mensagem da API", async () => {
+  const app = ambiente({
+    resetResponse: { data: null, error: { status: 400, code: "INVALID_TOKEN", message: "Native server message" } },
+  });
+  const resultado = await app.actions.redefinirSenha(
+    { sucesso: false, mensagem: "" },
+    formData({ token: "reset-token", novaSenha: "NovaSenha!234", confirmarSenha: "NovaSenha!234" }),
+  );
+  assert.match(resultado.mensagem, /inválido ou expirou/);
+});
+
+test("confirmação diferente e token malformado não chegam à API", async () => {
+  for (const campos of [
+    { token: "reset-token", novaSenha: "NovaSenha!234", confirmarSenha: "OutraSenha!234" },
+    { token: "token com espaço", novaSenha: "NovaSenha!234", confirmarSenha: "NovaSenha!234" },
+  ]) {
+    const app = ambiente();
+    const resultado = await app.actions.redefinirSenha({ sucesso: false, mensagem: "" }, formData(campos));
+    assert.equal(resultado.sucesso, false);
+    assert.equal(app.chamadas.length, 0);
+  }
+});
+
 test("redefinição envia token e senha nova ao endpoint Better Auth", async () => {
   const app = ambiente();
   const resultado = await app.actions.redefinirSenha(

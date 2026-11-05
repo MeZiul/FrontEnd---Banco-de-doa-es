@@ -24,9 +24,15 @@ test("cadastro rejeita confirmação e aceite inválidos no servidor", () => {
 });
 
 test("cadastro rejeita entrada ausente e telefone sem DDD", () => {
-  for (const entrada of [null, "cadastro", { ...cadastro, telefone: "9999-0000" }]) {
+  for (const entrada of [null, "cadastro", { ...cadastro, telefone: "9999-0000" }, { ...cadastro, telefone: "699999900001" }]) {
     assert.equal(typeof validarCadastro(entrada).erro, "string");
   }
+});
+
+test("cadastro aceita celular e fixo com máscara e guarda só os dígitos", () => {
+  assert.equal(validarCadastro({ ...cadastro, telefone: "(69) 99999-0000" }).dados.telefone, "69999990000");
+  assert.equal(validarCadastro({ ...cadastro, telefone: "(69) 3333-0000" }).dados.telefone, "6933330000");
+  assert.equal(validarCadastro({ ...cadastro, telefone: "" }).dados.telefone, "");
 });
 
 test("cadastro deixa nome, e-mail, CPF, cidade, UF e senha para o Zod da API", () => {
