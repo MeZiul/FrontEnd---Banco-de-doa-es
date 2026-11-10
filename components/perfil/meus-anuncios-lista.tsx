@@ -6,6 +6,7 @@ import { Package, Users } from "lucide-react";
 import { PaginacaoLinks } from "@/components/shared/paginacao-links";
 import { alterarAnuncio, carregarInteressados } from "@/app/(protected)/perfil/meus-anuncios/actions";
 import type { InteresseAnuncio, MeuAnuncio, StatusItem } from "@/types/item-doacao";
+import { ContatoWhatsApp } from "@/components/perfil/contato-whatsapp";
 
 const statusInfo: Record<StatusItem, { nome: string; classe: string }> = {
   DISPONIVEL: { nome: "Disponível", classe: "bg-blue-50 text-blue-700" },
@@ -118,6 +119,12 @@ function CardAnuncio({ item, ativo }: { item: MeuAnuncio; ativo: boolean }) {
             <input type="hidden" name="id" value={item._id} /><input type="hidden" name="interesseId" value={interesse._id} />
             <button name="acao" value="aceitar" disabled={pendente} className={botao}>Aceitar interessado</button><button name="acao" value="recusar" disabled={pendente} className={botao}>Recusar</button>
           </form>}
+          {interesse.status === "ACEITO" && (
+            <ContatoWhatsApp
+              telefone={interesse.usuario_interessado_id.telefone}
+              nome={interesse.usuario_interessado_id.nome}
+            />
+          )}
         </div>)}
       </section>}
     </div>
