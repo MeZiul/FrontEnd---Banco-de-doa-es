@@ -37,8 +37,13 @@
     "cypress": "^16.1.1",
     "eslint": "^9",
     "eslint-config-next": "^16.4.0",
-    "storybook": "10.6.1",
+    "storybook": "^10.6.7",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "allowScripts": {
+    "cypress@16.1.1": true,
+    "esbuild@0.28.2": true,
+    "unrs-resolver@1.12.2": true
   }
 }

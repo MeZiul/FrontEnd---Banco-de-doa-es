@@ -7,6 +7,7 @@ import { FeedRetry } from "@/components/feed/feed-retry";
 import { PaginacaoLinks } from "@/components/shared/paginacao-links";
 import type { Paginado } from "@/types/api";
 import type { Solicitacao, StatusSolicitacao } from "@/types/solicitacao";
+import { ContatoWhatsApp } from "@/components/perfil/contato-whatsapp";
 
 const ITENS_POR_PAGINA = 5;
 
@@ -59,7 +60,23 @@ export default async function MinhasSolicitacoes({ searchParams }: { searchParam
   if (page > Math.max(1, resultado.totalPages)) {
     redirect(`/perfil/minhas-solicitacoes?page=${Math.max(1, resultado.totalPages)}`);
   }
-  const { docs: solicitacoes } = resultado;
+  const solicitacoes = await Promise.all(
+    resultado.docs.map(async (solicitacao) => {
+      if (solicitacao.status !== "ACEITO") {
+        return solicitacao;
+      }
+
+      try {
+        return await fetchApiAutenticado<Solicitacao>(
+          `interesses/${solicitacao._id}`,
+          { signal: AbortSignal.timeout(10000) }
+        );
+      } catch (erro) {
+        unstable_rethrow(erro);
+        return solicitacao;
+      }
+    })
+  );
 
   return (
     <div className="w-full">
@@ -117,6 +134,13 @@ export default async function MinhasSolicitacoes({ searchParams }: { searchParam
                     <p className="text-sm text-gray-600">
                       <span className="font-medium text-gray-700">Resposta do doador:</span> {solicitacao.resposta_doador}
                     </p>
+                  )}
+                  
+                  {solicitacao.status === "ACEITO" && (
+                    <ContatoWhatsApp
+                      telefone={solicitacao.usuario_doador_id.telefone}
+                      nome={solicitacao.usuario_doador_id.nome}
+                    />
                   )}
 
                   <div className="mt-2 flex items-center justify-between flex-wrap gap-3">

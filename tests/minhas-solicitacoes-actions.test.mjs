@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
+import * as validacao from "../lib/doacao-validation.ts";
 
 const usuarioId = "10000000-0000-0000-0000-000000000001";
 const outroUsuarioId = "10000000-0000-0000-0000-000000000002";
@@ -47,6 +48,7 @@ function ambiente({
       if (nome === "next/cache") return { revalidatePath: (path) => revalidacoes.push(path) };
       if (nome === "next/navigation") return { unstable_rethrow: (erro) => { if (erro?.redirecionar) throw erro; } };
       if (nome === "@/lib/api") return { ErroApi };
+      if (nome === "@/lib/doacao-validation") return validacao;
       if (nome === "@/lib/auth-server") return {
         getUsuarioLogado: async () => ({ _id: usuario, situacao }),
         fetchApiAutenticado: async (path, opcoes) => {
