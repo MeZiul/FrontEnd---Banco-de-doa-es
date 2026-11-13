@@ -105,7 +105,10 @@ export function DenunciaForm({ itemId }: { itemId: string }) {
   );
 }
 
-export function AvaliacaoDoacaoForm({ itemId }: { itemId: string }) {
+export function AvaliacaoDoacaoForm({
+  itemId, avaliadoId, tipo }: {
+    itemId: string; avaliadoId: string; tipo: "DOADOR_PARA_INTERESSADO" | "INTERESSADO_PARA_DOADOR"
+  }) {
   const [resultado, action, pendente] = useActionState(avaliarDoacao, {
     sucesso: false,
     mensagem: "",
@@ -118,6 +121,8 @@ export function AvaliacaoDoacaoForm({ itemId }: { itemId: string }) {
       </p>
       <form action={action} className="mt-4 space-y-4">
         <input name="item_id" type="hidden" value={itemId} />
+        <input name="avaliado_id" type="hidden" value={avaliadoId} />
+        <input name="tipo" type="hidden" value={tipo} />
         {!resultado.sucesso && (
           <fieldset disabled={pendente} className="space-y-4">
             <label className="block text-sm">

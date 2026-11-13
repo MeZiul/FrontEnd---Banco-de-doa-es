@@ -83,6 +83,8 @@ export default async function DetalhesDoacao({
   }
   const proprio = usuario?._id === item.usuario_id?._id;
   let podeAvaliar = false;
+  let avaliadoId: string | null = null;
+
   if (usuario && item.status === "DOADO" && item.interesse_aceito_id) {
     try {
       const interesse = await fetchApi<{
@@ -91,10 +93,16 @@ export default async function DetalhesDoacao({
         token,
         signal: AbortSignal.timeout(10000),
       });
-      podeAvaliar =
-        proprio || interesse.usuario_interessado_id._id === usuario._id;
+
+      const interessadoId = interesse.usuario_interessado_id._id;
+
+      podeAvaliar = proprio || interessadoId === usuario._id;
+
+      if (podeAvaliar) {
+        avaliadoId = proprio ? interessadoId : item.usuario_id._id;
+      }
     } catch {
-      /* Private participation cannot be inferred from public item data. */
+      // Não é possível inferir a participação pelos dados públicos.
     }
   }
   return (
@@ -204,7 +212,13 @@ export default async function DetalhesDoacao({
           ) : (
             <InteresseForm itemId={id} />
           )}
-          {podeAvaliar && <AvaliacaoDoacaoForm itemId={id} />}
+          {podeAvaliar && avaliadoId && (
+            <AvaliacaoDoacaoForm
+              itemId={id}
+              avaliadoId={avaliadoId}
+              tipo={proprio ? "DOADOR_PARA_INTERESSADO" : "INTERESSADO_PARA_DOADOR"}
+            />
+          )}
           <CompartilharDoacao titulo={item.titulo} />
           {usuario?.situacao === "ATIVO" && !proprio && (
             <DenunciaForm itemId={id} />

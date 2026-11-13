@@ -8,7 +8,7 @@ import { campoDoacao, ID_DOACAO } from "@/lib/doacao-validation";
 import type { InteresseAnuncio, MeuAnuncio, ResultadoAnuncio } from "@/types/item-doacao";
 
 const caminho = "/perfil/meus-anuncios";
-class ErroFormulario extends Error {}
+class ErroFormulario extends Error { }
 
 async function proprioAnuncio(id: string) {
   if (!ID_DOACAO.test(id)) throw new ErroFormulario("Identificador de anúncio inválido.");
@@ -40,27 +40,49 @@ export async function alterarAnuncio(_anterior: ResultadoAnuncio, dados: FormDat
   try {
     const id = campoDoacao(dados, "id");
     const acao = campoDoacao(dados, "acao");
+    if (acao === "aceitar" || acao === "recusar") {
+      if (!ID_DOACAO.test(id)) {
+        throw new ErroFormulario("Identificador de anúncio inválido.");
+      }
+
+      const interesseId = campoDoacao(dados, "interesseId");
+
+      if (!ID_DOACAO.test(interesseId)) {
+        throw new ErroFormulario("Identificador de interesse inválido.");
+      }
+
+      await fetchApiAutenticado(
+        `interesses/${interesseId}/${acao}`,
+        {
+          metodo: "PUT",
+          body: {},
+        },
+      );
+
+      revalidatePath(caminho);
+
+      return {
+        sucesso: true,
+        mensagem: "Alteração salva com sucesso.",
+      };
+    }
+
     const { item, usuario } = await proprioAnuncio(id);
     if (acao === "editar") {
       if (item.status !== "DISPONIVEL") throw new ErroFormulario("Somente anúncios disponíveis podem ser editados.");
-      await fetchApiAutenticado(`itemdoacao/${id}`, { metodo: "PUT", body: {
-        titulo: campoDoacao(dados, "titulo"), descricao: campoDoacao(dados, "descricao"),
-        condicao_item: campoDoacao(dados, "condicao_item"), cidade: campoDoacao(dados, "cidade"), uf: campoDoacao(dados, "uf").toUpperCase(),
-        bairro: campoDoacao(dados, "bairro"), condicoes_doacao: campoDoacao(dados, "condicoes_doacao"),
-      } });
+      await fetchApiAutenticado(`itemdoacao/${id}`, {
+        metodo: "PUT", body: {
+          titulo: campoDoacao(dados, "titulo"), descricao: campoDoacao(dados, "descricao"),
+          condicao_item: campoDoacao(dados, "condicao_item"), cidade: campoDoacao(dados, "cidade"), uf: campoDoacao(dados, "uf").toUpperCase(),
+          bairro: campoDoacao(dados, "bairro"), condicoes_doacao: campoDoacao(dados, "condicoes_doacao"),
+        }
+      });
     } else if (acao === "entregar") {
       if (item.status !== "RESERVADO") throw new ErroFormulario("O anúncio precisa estar reservado para confirmar a entrega.");
       await fetchApiAutenticado(`itemdoacao/${id}/confirmar-entrega`, { metodo: "PUT" });
     } else if (acao === "cancelar") {
       if (["DOADO", "CANCELADO"].includes(item.status)) throw new ErroFormulario("Esta doação não pode ser cancelada.");
       await fetchApiAutenticado(`itens/${id}/cancelar`, { metodo: "PATCH", body: { motivo: campoDoacao(dados, "motivo") } });
-    } else if (acao === "aceitar" || acao === "recusar") {
-      if (usuario.situacao !== "ATIVO" || item.status !== "DISPONIVEL") throw new ErroFormulario("Uma conta ativa e um anúncio disponível são necessários para responder.");
-      const interesseId = campoDoacao(dados, "interesseId");
-      if (!ID_DOACAO.test(interesseId)) throw new ErroFormulario("Identificador de interesse inválido.");
-      const interesses = await fetchApiAutenticado<InteresseAnuncio[]>(`itens/${id}/interesses`);
-      if (!interesses.some((interesse) => interesse._id === interesseId && interesse.item_id === id && interesse.status === "PENDENTE")) throw new ErroFormulario("O interesse não está mais pendente neste anúncio.");
-      await fetchApiAutenticado(`interesses/${interesseId}/${acao}`, { metodo: "PUT", body: {} });
     } else {
       throw new ErroFormulario("Ação inválida.");
     }
