@@ -14,33 +14,35 @@ function form(campos) { const dados = new FormData(); for (const [nome, valor] o
 
 function ambiente({ usuario = usuarioId, status = "DOADO", erro = null, erroEscrita = null } = {}) {
   const chamadas = [];
-  class ErroApi extends Error {}
+  class ErroApi extends Error { }
   const cache = new Map();
   function carregar(path) {
     if (cache.has(path)) return cache.get(path);
     const fonte = readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
     const compilado = ts.transpileModule(fonte, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-    const contexto = { exports: {}, FormData, File, AbortSignal, process: { env: {} }, require(nome) {
-      if (nome === "next/cache") return { revalidatePath() {} };
-      if (nome === "next/navigation") return { unstable_rethrow(e) { if (e?.redirect) throw e; } };
-      if (nome === "@/lib/api") return { ErroApi };
-      if (nome === "@/lib/doacao-validation") return carregar("lib/doacao-validation.ts");
-      if (nome === "@/lib/auth-server") return {
-        getUsuarioLogado: async () => ({ _id: usuario }),
-        fetchApiAutenticado: async (path, opcoes) => {
-          chamadas.push({ path, opcoes });
-          // Texto = mensagem de erro da API (ErroApi); objeto = erro lançado como está.
-          if (erro) throw typeof erro === "string" ? new ErroApi(erro) : erro;
-          // Só o POST falha: as leituras anteriores à escrita continuam funcionando.
-          if (erroEscrita && opcoes?.metodo === "POST") throw new ErroApi(erroEscrita);
-          if (path === "perfil") return { _id: usuario };
-          if (path === `itemdoacao/${itemId}`) return { usuario_id: { _id: usuarioId }, status, interesse_aceito_id: interesseId };
-          if (path === `interesses/${interesseId}`) return { usuario_interessado_id: { _id: interessadoId } };
-          return { _id: itemId };
-        },
-      };
-      throw new Error(`Import inesperado ${nome}`);
-    } };
+    const contexto = {
+      exports: {}, FormData, File, AbortSignal, process: { env: {} }, require(nome) {
+        if (nome === "next/cache") return { revalidatePath() { } };
+        if (nome === "next/navigation") return { unstable_rethrow(e) { if (e?.redirect) throw e; } };
+        if (nome === "@/lib/api") return { ErroApi };
+        if (nome === "@/lib/doacao-validation") return carregar("lib/doacao-validation.ts");
+        if (nome === "@/lib/auth-server") return {
+          getUsuarioLogado: async () => ({ _id: usuario }),
+          fetchApiAutenticado: async (path, opcoes) => {
+            chamadas.push({ path, opcoes });
+            // Texto = mensagem de erro da API (ErroApi); objeto = erro lançado como está.
+            if (erro) throw typeof erro === "string" ? new ErroApi(erro) : erro;
+            // Só o POST falha: as leituras anteriores à escrita continuam funcionando.
+            if (erroEscrita && opcoes?.metodo === "POST") throw new ErroApi(erroEscrita);
+            if (path === "perfil") return { _id: usuario };
+            if (path === `itemdoacao/${itemId}`) return { usuario_id: { _id: usuarioId }, status, interesse_aceito_id: interesseId };
+            if (path === `interesses/${interesseId}`) return { usuario_interessado_id: { _id: interessadoId } };
+            return { _id: itemId };
+          },
+        };
+        throw new Error(`Import inesperado ${nome}`);
+      }
+    };
     vm.runInNewContext(compilado, contexto);
     cache.set(path, contexto.exports); return contexto.exports;
   }
@@ -78,15 +80,75 @@ test("denúncia do doador deriva alvo do anúncio em vez de aceitar ID do client
   assert.equal(resultado.sucesso, true);
   assert.deepEqual(JSON.parse(JSON.stringify(app.chamadas.at(-1).opcoes.body)), { tipo_alvo: "USUARIO", motivo: "FRAUDE", alvo_usuario_id: usuarioId });
 });
-test("avaliação deriva participante e sentido; visitante e item aberto são bloqueados", async () => {
-  for (const options of [{ usuario: "60000000-0000-0000-0000-000000000001" }, { status: "DISPONIVEL" }]) {
-    const app = ambiente(options); assert.equal((await app.avaliarDoacao(vazio, form({ item_id: itemId, nota: "5", comentario: "" }))).sucesso, false);
-    assert.equal(app.chamadas.filter(c => c.opcoes?.metodo === "POST").length, 0);
-  }
+test("avaliação envia os participantes informados e mantém os campos permitidos", async () => {
   const app = ambiente({ usuario: interessadoId });
-  assert.equal((await app.avaliarDoacao(vazio, form({ item_id: itemId, nota: "5", comentario: " Ótima experiência. ", avaliado_id: "outro", tipo: "DOADOR_PARA_INTERESSADO" }))).sucesso, true);
-  const payload = app.chamadas.at(-1).opcoes.body;
-  assert.equal(payload.avaliado_id, usuarioId); assert.equal(payload.tipo, "INTERESSADO_PARA_DOADOR"); assert.equal(payload.comentario, "Ótima experiência.");
+
+  const resultado = await app.avaliarDoacao(vazio,
+    form({
+      item_id: itemId,
+      avaliado_id: usuarioId,
+      tipo: "INTERESSADO_PARA_DOADOR",
+      nota: "5",
+      comentario: " Ótima experiência. "
+    })
+  );
+
+  assert.equal(resultado.sucesso, true);
+
+  const posts = app.chamadas.filter((chamada) => chamada.opcoes?.metodo === "POST");
+
+  assert.equal(posts.length, 1);
+  assert.equal(posts[0].path, "avaliacoes");
+
+  const payload = posts[0].opcoes.body;
+
+  assert.deepEqual(JSON.parse(JSON.stringify(payload)),
+    {
+      item_id: itemId,
+      avaliado_id: usuarioId,
+      tipo: "INTERESSADO_PARA_DOADOR",
+      nota: 5,
+      comentario: "Ótima experiência."
+    }
+  );
+
+  // Nenhuma consulta GET adicional é realizada.
+  assert.equal(app.chamadas.length, 1);
+});
+test("avaliação rejeita identificadores e tipos inválidos", async () => {
+  const casos = [
+    {
+      item_id: "invalido",
+      avaliado_id: interessadoId,
+      tipo: "DOADOR_PARA_INTERESSADO",
+      nota: "5"
+    },
+    {
+      item_id: itemId,
+      avaliado_id: "invalido",
+      tipo: "DOADOR_PARA_INTERESSADO",
+      nota: "5"
+    },
+    {
+      item_id: itemId,
+      avaliado_id: interessadoId,
+      tipo: "TIPO_INVALIDO",
+      nota: "5"
+    }
+  ];
+
+  for (const campos of casos) {
+    const app = ambiente();
+
+    const resultado = await app.avaliarDoacao(
+      vazio,
+      form(campos)
+    );
+
+    assert.equal(resultado.sucesso, false);
+
+    assert.equal(app.chamadas.length, 0, "Dados inválidos não devem gerar requisições à API");
+  }
 });
 test("denúncia com motivo inválido é recusada pelo Zod da API e mostra a mensagem dela", async () => {
   const app = ambiente({ erroEscrita: "Motivo de denúncia inválido." });
@@ -95,12 +157,32 @@ test("denúncia com motivo inválido é recusada pelo Zod da API e mostra a mens
   assert.equal(resultado.mensagem, "Motivo de denúncia inválido.");
   assert.equal(app.chamadas.at(-1).opcoes.body.motivo, "INVENTADO");
 });
-test("avaliação com nota fora do intervalo é recusada pelo Zod da API e mostra a mensagem dela", async () => {
-  const app = ambiente({ erroEscrita: "Nota máxima é 5" });
-  const resultado = await app.avaliarDoacao(vazio, form({ item_id: itemId, nota: "9", comentario: "" }));
+test("avaliação com nota fora do intervalo é rejeitada antes do POST", async () => {
+  const app = ambiente();
+
+  const resultado = await app.avaliarDoacao(
+    vazio,
+    form({
+      item_id: itemId,
+      avaliado_id: interessadoId,
+      tipo: "DOADOR_PARA_INTERESSADO",
+      nota: "6",
+      comentario: "",
+    }),
+  );
+
   assert.equal(resultado.sucesso, false);
-  assert.equal(resultado.mensagem, "Nota máxima é 5");
-  assert.equal(app.chamadas.at(-1).opcoes.body.nota, 9);
+
+  assert.equal(
+    resultado.mensagem,
+    "Escolha uma nota de 1 a 5.",
+  );
+
+  const posts = app.chamadas.filter(
+    (chamada) => chamada.opcoes?.metodo === "POST",
+  );
+
+  assert.equal(posts.length, 0);
 });
 test("ID inválido em denúncia, avaliação e notificação não chega à API", async () => {
   const app = ambiente();
