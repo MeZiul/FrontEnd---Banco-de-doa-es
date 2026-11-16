@@ -16,10 +16,10 @@ class ErroFormulario extends Error { }
 
 
 async function proprioAnuncio(id: string) {
-  if (!ID_DOACAO.test(id)) throw new ErroFormulario("Identificador de anúncio inválido.");
+  const anuncioId = validarId(id, "Identificador de anúncio inválido.");
   const usuario = await getUsuarioLogado();
   const anuncios = await fetchApiAutenticado<MeuAnuncio[]>(`usuario/${encodeURIComponent(usuario._id)}/itens`);
-  const item = anuncios.find((anuncio) => anuncio._id === id && anuncio.usuario_id === usuario._id);
+  const item = anuncios.find((anuncio) => anuncio._id === anuncioId && anuncio.usuario_id === usuario._id);
   if (!item) throw new ErroFormulario("Anúncio não encontrado entre suas doações.");
   return { item, usuario };
 }
@@ -104,7 +104,27 @@ export async function alterarAnuncio(_anterior: ResultadoAnuncio, dados: FormDat
   try {
     const id = campoDoacao(dados, "id");
     const acao = campoDoacao(dados, "acao");
-    const { item, usuario } = await proprioAnuncio(id);
+
+    if (acao === "aceitar" || acao === "recusar") {
+      validarId(id, "Identificador de anúncio inválido.");
+      const interesseId = validarId(campoDoacao(dados, "interesseId"), "Identificador de interesse inválido.");
+      const { item } = await proprioAnuncio(id);
+      const interesses = await fetchApiAutenticado<InteresseAnuncio[]>(`itens/${encodeURIComponent(item._id)}/interesses`);
+      const interesse = interesses.find((registro) => registro._id === interesseId);
+
+      if (!interesse || interesse.item_id !== item._id || interesse.status !== "PENDENTE") {
+        throw new ErroFormulario("Este interesse não está disponível para resposta.");
+      }
+
+      await fetchApiAutenticado(`interesses/${interesseId}/${acao}`, {
+        metodo: "PUT",
+        body: {},
+      });
+
+      return sucesso();
+    }
+
+    const { item } = await proprioAnuncio(id);
     if (acao === "editar") {
       if (item.status !== "DISPONIVEL") throw new ErroFormulario("Somente anúncios disponíveis podem ser editados.");
       await fetchApiAutenticado(`itemdoacao/${id}`, {
@@ -120,18 +140,10 @@ export async function alterarAnuncio(_anterior: ResultadoAnuncio, dados: FormDat
     } else if (acao === "cancelar") {
       if (["DOADO", "CANCELADO"].includes(item.status)) throw new ErroFormulario("Esta doação não pode ser cancelada.");
       await fetchApiAutenticado(`itens/${id}/cancelar`, { metodo: "PATCH", body: { motivo: campoDoacao(dados, "motivo") } });
-    } else if (acao === "aceitar" || acao === "recusar") {
-      if (usuario.situacao !== "ATIVO" || item.status !== "DISPONIVEL") throw new ErroFormulario("Uma conta ativa e um anúncio disponível são necessários para responder.");
-      const interesseId = campoDoacao(dados, "interesseId");
-      if (!ID_DOACAO.test(interesseId)) throw new ErroFormulario("Identificador de interesse inválido.");
-      const interesses = await fetchApiAutenticado<InteresseAnuncio[]>(`itens/${id}/interesses`);
-      if (!interesses.some((interesse) => interesse._id === interesseId && interesse.item_id === id && interesse.status === "PENDENTE")) throw new ErroFormulario("O interesse não está mais pendente neste anúncio.");
-      await fetchApiAutenticado(`interesses/${interesseId}/${acao}`, { metodo: "PUT", body: {} });
     } else {
       throw new ErroFormulario("Ação inválida.");
     }
-    revalidatePath(caminho);
-    return { sucesso: true, mensagem: "Alteração salva com sucesso." };
+    return sucesso();
   } catch (erro) {
     return falha(erro);
   }

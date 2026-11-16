@@ -2,11 +2,20 @@ export const ID_DOACAO = /^(?:[a-f\d]{24}|[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\
 export const MAX_FOTO = 4 * 1024 * 1024;
 export class ErroDoacao extends Error {}
 
-export function campoDoacao(dados: FormData, campo: string) {
+export function campoDoacao(dados: FormData, campo: string, minimo?: number, maximo?: number): string {
   const valor = dados.get(campo);
-  return typeof valor === "string" ? valor.trim() : "";
-}
+  const texto = typeof valor === "string" ? valor.trim() : "";
 
+  if (minimo !== undefined && texto.length < minimo) {
+    throw new ErroDoacao(`O campo ${campo} deve ter pelo menos ${minimo} caracteres.`);
+  }
+
+  if (maximo !== undefined && texto.length > maximo) {
+    throw new ErroDoacao(`O campo ${campo} deve ter no máximo ${maximo} caracteres.`);
+  }
+
+  return texto;
+}
 export function lerNovaDoacao(dados: FormData) {
   return {
     titulo: campoDoacao(dados, "titulo"), descricao: campoDoacao(dados, "descricao"),
