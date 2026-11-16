@@ -3,10 +3,14 @@
 import { Combobox } from "@base-ui/react/combobox";
 import { useQuery } from "@tanstack/react-query";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 // Busca os municípios da UF na API pública do IBGE (já vem em ordem alfabética).
+// Se o IBGE demorar mais de 8s, a busca é tratada como falha.
 async function buscarCidades(uf: string): Promise<string[]> {
-  const resposta = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios?orderBy=nome`);
+  const resposta = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios?orderBy=nome`, {
+    signal: AbortSignal.timeout(8000),
+  });
   if (!resposta.ok) throw new Error("Não foi possível carregar as cidades.");
   const municipios: { nome: string }[] = await resposta.json();
   return municipios.map((municipio) => municipio.nome);
@@ -37,6 +41,29 @@ export function CidadeSelect({ id, uf, value, onValueChange, dataTest }: Props) 
   });
   const carregando = Boolean(uf) && isPending;
 
+  // Sem a lista do IBGE, a pessoa digita a cidade para o cadastro não travar.
+  if (isError) {
+    return (
+      <div className="space-y-1">
+        <Input
+          id={id}
+          data-test={dataTest}
+          type="text"
+          placeholder="Digite sua cidade"
+          autoComplete="address-level2"
+          maxLength={100}
+          required
+          className="bg-background"
+          value={value}
+          onChange={(evento) => onValueChange(evento.target.value)}
+        />
+        <p role="status" className="text-xs text-muted-foreground">
+          Não foi possível carregar a lista de cidades. Digite o nome da cidade.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <Combobox.Root
       items={cidades}
@@ -64,7 +91,7 @@ export function CidadeSelect({ id, uf, value, onValueChange, dataTest }: Props) 
         <Combobox.Positioner sideOffset={4} className="isolate z-50">
           <Combobox.Popup className="max-h-64 w-(--anchor-width) min-w-48 overflow-y-auto rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
             <Combobox.Empty className="px-2 py-1.5 text-sm text-muted-foreground empty:hidden">
-              {isError ? "Não foi possível carregar as cidades." : "Nenhuma cidade encontrada."}
+              Nenhuma cidade encontrada.
             </Combobox.Empty>
             <Combobox.List>
               {(cidade: string) => (

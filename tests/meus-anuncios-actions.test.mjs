@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
+import * as validacao from "../lib/doacao-validation.ts";
 
 // Executa as ações reais com a API isolada, sem carregar credenciais ou acessar banco.
 const fonte = readFileSync(new URL("../app/(protected)/perfil/meus-anuncios/actions.ts", import.meta.url), "utf8");
@@ -21,6 +22,7 @@ function ambiente({ status = "DISPONIVEL", dono = usuarioId, interesses = [], fa
       if (nome === "next/cache") return { revalidatePath: (path) => revalidacoes.push(path) };
       if (nome === "next/navigation") return { unstable_rethrow: (erro) => { if (erro?.redirecionar) throw erro; } };
       if (nome === "@/lib/api") return { ErroApi };
+      if (nome === "@/lib/doacao-validation") return validacao;
       if (nome === "@/lib/auth-server") return {
         getUsuarioLogado: async () => ({ _id: usuarioId, situacao: "ATIVO" }),
         fetchApiAutenticado: async (path, opcoes) => {
@@ -55,15 +57,15 @@ test("rejeita identificadores inválidos antes de consultar a API", async () => 
   assert.equal(app.chamadas.length, 0);
 });
 
-test("cancelamento valida motivo e bloqueia estados terminais", async () => {
+test("cancelamento bloqueia estados terminais e deixa o motivo para o Zod da API", async () => {
   for (const status of ["DOADO", "CANCELADO"]) {
     const app = ambiente({ status });
     assert.equal((await app.executar("cancelar", { motivo: "Motivo de cancelamento" })).sucesso, false);
     assert.equal(app.chamadas.filter(({ opcoes }) => opcoes?.metodo).length, 0);
   }
   const app = ambiente();
-  assert.equal((await app.executar("cancelar", { motivo: "curto" })).sucesso, false);
-  assert.equal(app.chamadas.filter(({ opcoes }) => opcoes?.metodo).length, 0);
+  await app.executar("cancelar", { motivo: "curto" });
+  assert.equal(app.chamadas.at(-1).opcoes.body.motivo, "curto");
 });
 
 test("cancelamento válido usa PATCH com motivo e revalida a página", async () => {
@@ -76,11 +78,11 @@ test("cancelamento válido usa PATCH com motivo e revalida a página", async () 
   assert.deepEqual(app.revalidacoes, ["/perfil/meus-anuncios"]);
 });
 
-test("edição valida conteúdo, normaliza UF e não repassa campos de controle", async () => {
+test("edição deixa o conteúdo para o Zod da API, normaliza UF e não repassa campos de controle", async () => {
   const campos = { titulo: "Mesa de estudos", descricao: "Mesa de madeira em bom estado", condicao_item: "USADO_BOM", cidade: "Cuiabá", uf: "mt", bairro: "", condicoes_doacao: "", status: "DOADO", usuario_id: "outro" };
-  const invalido = ambiente();
-  assert.equal((await invalido.executar("editar", { ...campos, titulo: "x" })).sucesso, false);
-  assert.equal(invalido.chamadas.filter(({ opcoes }) => opcoes?.metodo).length, 0);
+  const tituloCurto = ambiente();
+  await tituloCurto.executar("editar", { ...campos, titulo: "x" });
+  assert.equal(tituloCurto.chamadas.at(-1).opcoes.body.titulo, "x");
   const reservado = ambiente({ status: "RESERVADO" });
   assert.equal((await reservado.executar("editar", campos)).sucesso, false);
   const valido = ambiente();

@@ -3,12 +3,13 @@ import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
 import { fetchApiAutenticado } from "@/lib/auth-server";
 import { ErroApi } from "@/lib/api";
+import { ID_DOACAO } from "@/lib/doacao-validation";
 
 export type EstadoNotificacao = { erro?: string; sucesso?: string };
 export async function marcarLidas(_estado: EstadoNotificacao, form: FormData): Promise<EstadoNotificacao> {
   const id = form.get("id");
   const todas = form.get("todas") === "true";
-  if (!todas && (typeof id !== "string" || !/^(?:[a-f\d]{24}|[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12})$/i.test(id))) return { erro: "Notificação inválida." };
+  if (!todas && (typeof id !== "string" || !ID_DOACAO.test(id))) return { erro: "Notificação inválida." };
   try {
     await fetchApiAutenticado(todas ? "notificacoes/ler-tudo" : `notificacoes/${id}/ler`, { metodo: todas ? "POST" : "PATCH", signal: AbortSignal.timeout(10000) });
   } catch (erro) {

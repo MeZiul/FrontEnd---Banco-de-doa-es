@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { destinoInterno, opcoesCookieSessao, validarCadastro, validarLogin } from "../lib/auth-validation.ts";
+import { destinoInterno, lerLogin, opcoesCookieSessao, validarCadastro } from "../lib/auth-validation.ts";
 
 const cadastro = {
   nome: " Maria da Silva ", email: " maria@example.test ", cpf: "529.982.247-25",
@@ -23,23 +23,31 @@ test("cadastro rejeita confirmação e aceite inválidos no servidor", () => {
   }
 });
 
-test("cadastro valida entradas ausentes, campos obrigatórios e política de senha real", () => {
-  for (const entrada of [null, "cadastro", {}, { ...cadastro, nome: "A" },
-    { ...cadastro, email: "inválido" }, { ...cadastro, cpf: "123" },
-    { ...cadastro, cidade: "A" }, { ...cadastro, uf: "XX" },
-    { ...cadastro, senha: "abcdefgh" }, { ...cadastro, senha: "Teste123#" },
-    { ...cadastro, senha: "Teste123!".repeat(20) }]) {
+test("cadastro rejeita entrada ausente e telefone sem DDD", () => {
+  for (const entrada of [null, "cadastro", { ...cadastro, telefone: "9999-0000" }, { ...cadastro, telefone: "699999900001" }]) {
     assert.equal(typeof validarCadastro(entrada).erro, "string");
   }
 });
 
-test("login traduz senha sem normalizá-la e exige booleano para lembrar", () => {
-  assert.deepEqual(validarLogin({ email: " maria@example.test ", senha: " senha com espaços ", lembrar: "true" }).dados,
-    { email: "maria@example.test", senha: " senha com espaços ", lembrar: false });
-  assert.equal(validarLogin({ email: "maria@example.test", senha: "x", lembrar: true }).dados.lembrar, true);
-  for (const entrada of [null, {}, { email: "inválido", senha: "x" }, { email: "a@b.test", senha: "" }]) {
-    assert.equal(typeof validarLogin(entrada).erro, "string");
+test("cadastro aceita celular e fixo com máscara e guarda só os dígitos", () => {
+  assert.equal(validarCadastro({ ...cadastro, telefone: "(69) 99999-0000" }).dados.telefone, "69999990000");
+  assert.equal(validarCadastro({ ...cadastro, telefone: "(69) 3333-0000" }).dados.telefone, "6933330000");
+  assert.equal(validarCadastro({ ...cadastro, telefone: "" }).dados.telefone, "");
+});
+
+test("cadastro deixa nome, e-mail, CPF, cidade, UF e senha para o Zod da API", () => {
+  for (const entrada of [{ ...cadastro, nome: "A" }, { ...cadastro, email: "inválido" },
+    { ...cadastro, cpf: "123" }, { ...cadastro, cidade: "A" }, { ...cadastro, uf: "XX" },
+    { ...cadastro, senha: "abcdefgh", confirmarSenha: "abcdefgh" }]) {
+    assert.equal(validarCadastro(entrada).erro, undefined);
   }
+});
+
+test("login traduz senha sem normalizá-la e exige booleano para lembrar", () => {
+  assert.deepEqual(lerLogin({ email: " maria@example.test ", senha: " senha com espaços ", lembrar: "true" }),
+    { email: "maria@example.test", senha: " senha com espaços ", lembrar: false });
+  assert.equal(lerLogin({ email: "maria@example.test", senha: "x", lembrar: true }).lembrar, true);
+  assert.deepEqual(lerLogin(null), { email: "", senha: "", lembrar: false });
 });
 
 test("redirecionamento permite caminhos internos e rejeita destinos externos e barras invertidas", () => {

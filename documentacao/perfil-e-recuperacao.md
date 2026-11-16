@@ -2,7 +2,7 @@
 
 - `/perfil/editar` requer sessão; consulta `GET /perfil` e salva com `PUT /perfil`. A identidade vem do cookie HttpOnly no servidor e da sessão da API, nunca de um ID enviado pelo formulário.
 - Campos editáveis desta tela: nome, e-mail, telefone, cidade, UF e apresentação (`bio`). CPF, foto existente, permissões, situação e contadores são preservados. Telefone e apresentação podem ficar vazios.
-- A ação valida novamente os campos, encaminha somente a whitelist e limita o request a 10 segundos. Sucesso revalida os layouts; conflito de e-mail mantém os dados preenchidos e mostra o erro; uma sessão expirada redireciona ao login.
+- A ação encaminha somente a whitelist e limita o request a 10 segundos; os campos são validados pelo Zod da API, e a mensagem dela aparece no formulário. Sucesso revalida os layouts; conflito de e-mail mantém os dados preenchidos e mostra o erro; uma sessão expirada redireciona ao login.
 - `/esqueci-senha` usa `authClient.requestPasswordReset` no endpoint nativo `/api/auth/request-password-reset` com `{ email, redirectTo }` e exibe uma mensagem genérica para evitar revelar se a conta existe.
 - O e-mail gerado pelo backend aponta para `/redefinir-senha?token=...`. Essa página exige confirmação da nova senha e usa `authClient.resetPassword` em `/api/auth/reset-password` com `{ token, newPassword }`.
 - A política de senha segue a fachada existente: 8 a 128 caracteres, maiúscula, minúscula, número e símbolo `@$!%*?&`. Token ausente/inválido/expirado permite solicitar outro link. O backend consome o token e revoga as sessões anteriores quando o reset conclui.

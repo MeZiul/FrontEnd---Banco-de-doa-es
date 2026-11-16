@@ -6,7 +6,7 @@ import {
   solicitarRedefinicaoDeSenha,
 } from "@/lib/auth-native-client";
 import {
-  validarRecuperacao,
+  lerRecuperacao,
   validarRedefinicao,
 } from "@/lib/perfil-validation";
 
@@ -39,9 +39,7 @@ export async function solicitarRecuperacao(
   _anterior: ResultadoRecuperacao,
   form: FormData,
 ): Promise<ResultadoRecuperacao> {
-  const resultado = validarRecuperacao({ email: form.get("email") });
-  if (resultado.erro !== undefined)
-    return { sucesso: false, mensagem: resultado.erro };
+  const { email } = lerRecuperacao({ email: form.get("email") });
 
   const redirectTo = destinoDeRecuperacao((await headers()).get("origin"));
   if (!redirectTo) {
@@ -52,17 +50,16 @@ export async function solicitarRecuperacao(
   }
 
   try {
-    const resposta = await solicitarRedefinicaoDeSenha(
-      resultado.dados.email,
-      redirectTo,
-    );
+    const resposta = await solicitarRedefinicaoDeSenha(email, redirectTo);
     if (resposta.error) {
       return {
         sucesso: false,
         mensagem:
           resposta.error.status === 429
             ? "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente."
-            : "Não foi possível solicitar a recuperação. Tente novamente.",
+            : resposta.error.status === 400
+              ? "Informe um e-mail válido."
+              : "Não foi possível solicitar a recuperação. Tente novamente.",
       };
     }
     if (!resposta.data?.status) {
@@ -107,6 +104,10 @@ export async function redefinirSenha(
         mensagem:
           "Senha redefinida com sucesso. Entre novamente com sua nova senha.",
       };
+    }
+    
+    if (resposta.error?.code === "WEAK_PASSWORD" && resposta.error.message) {
+      return { sucesso: false, mensagem: resposta.error.message };
     }
     if (resposta.error && resposta.error.status === 429) {
       return {

@@ -17,7 +17,8 @@ function ambiente(arquivo, falha) {
   }
   const request = async (path, opcoes) => {
     chamadas.push({ path, opcoes });
-    if (falha) throw falha;
+    // `falha` pode ser uma função para criar o ErroApi deste ambiente.
+    if (falha) throw typeof falha === "function" ? falha(ErroApi) : falha;
     return {};
   };
   const contexto = {
@@ -105,13 +106,26 @@ test("ação de perfil usa identidade da sessão, ignora alvo injetado e limita 
   assert.ok(app.chamadas[0].opcoes.signal instanceof AbortSignal);
   assert.ok(app.revalidacoes.some(([path]) => path === "/perfil"));
 });
-test("perfil inválido não escreve e sessão expirada preserva redirect do Next", async () => {
-  const app = ambiente("../app/(protected)/perfil/editar/actions.ts");
-  assert.equal(
-    (await app.executar("salvarPerfil", { ...perfil, uf: "ZZ" })).sucesso,
-    false,
+test("perfil recusado pelo Zod da API mostra a mensagem do campo", async () => {
+  const app = ambiente(
+    "../app/(protected)/perfil/editar/actions.ts",
+    (ErroApi) => new ErroApi("UF deve ter 2 caracteres.", 400),
   );
-  assert.equal(app.chamadas.length, 0);
+  const resultado = await app.executar("salvarPerfil", { ...perfil, uf: "R" });
+  assert.equal(resultado.sucesso, false);
+  assert.equal(resultado.mensagem, "UF deve ter 2 caracteres.");
+  assert.equal(app.chamadas.length, 1);
+});
+test("falha interna da API ao salvar o perfil não expõe a mensagem dela", async () => {
+  const app = ambiente(
+    "../app/(protected)/perfil/editar/actions.ts",
+    (ErroApi) => new ErroApi("private database details", 500),
+  );
+  const resultado = await app.executar("salvarPerfil", perfil);
+  assert.equal(resultado.sucesso, false);
+  assert.equal(resultado.mensagem, "Não foi possível salvar o perfil. Tente novamente.");
+});
+test("sessão expirada preserva redirect do Next", async () => {
   const redirect = { redirecionar: true };
   await assert.rejects(
     ambiente("../app/(protected)/perfil/editar/actions.ts", redirect).executar(

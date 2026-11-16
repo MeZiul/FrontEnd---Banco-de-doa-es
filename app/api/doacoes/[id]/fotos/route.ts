@@ -8,24 +8,24 @@ import {
   validarFotos,
 } from "@/lib/doacao-validation";
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  // Cookie-based mutations require a browser request from this exact origin.
-  // Next can normalize request.url to localhost; Host preserves the browser origin.
+// Cookie-based mutations require a browser request from this exact origin.
+// Next can normalize request.url to localhost; Host preserves the browser origin.
+function ehMesmaOrigem(request: Request): boolean {
   const origem = request.headers.get("origin");
-  const host = request.headers.get("host");
+  if (!origem || !URL.canParse(origem)) return false;
+  const url = new URL(origem);
   const protocolo =
     request.headers.get("x-forwarded-proto") === "https"
       ? "https:"
       : new URL(request.url).protocol;
-  let mesmaOrigem = false;
-  try {
-    const url = new URL(origem ?? "");
-    mesmaOrigem = url.host === host && url.protocol === protocolo;
-  } catch {}
-  if (!mesmaOrigem) {
+  return url.host === request.headers.get("host") && url.protocol === protocolo;
+}
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  if (!ehMesmaOrigem(request)) {
     return Response.json(
       { mensagem: "Origem da solicitação inválida." },
       { status: 403 },
@@ -118,20 +118,21 @@ export async function POST(
     revalidatePath("/perfil/meus-anuncios");
     return Response.json({ mensagem: "Foto adicionada.", sucesso: true });
   } catch (erro) {
-    const status =
-      erro instanceof ErroApi
-        ? erro.status
-        : erro instanceof ErroDoacao
-          ? 400
-          : 502;
+    if (erro instanceof ErroApi || erro instanceof ErroDoacao) {
+      return Response.json(
+        { mensagem: erro.message },
+        { status: erro instanceof ErroApi ? erro.status : 400 },
+      );
+    }
+    // Falha inesperada (API fora do ar, timeout, resposta inválida): a pessoa vê
+    // uma mensagem genérica e a causa fica registrada no log do servidor.
+    console.error(`Falha ao enviar foto da doação ${id}:`, erro);
     return Response.json(
       {
         mensagem:
-          erro instanceof ErroApi || erro instanceof ErroDoacao
-            ? erro.message
-            : "Não foi possível enviar a foto. Confira as fotos do anúncio antes de tentar novamente.",
+          "Não foi possível enviar a foto. Confira as fotos do anúncio antes de tentar novamente.",
       },
-      { status },
+      { status: 502 },
     );
   } finally {
     reader.releaseLock();

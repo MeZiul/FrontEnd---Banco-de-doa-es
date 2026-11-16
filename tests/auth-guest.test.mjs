@@ -329,14 +329,66 @@ test("cadastro Better Auth usa dados validados, não abre sessão e exige login 
   );
 });
 
-test("login Better Auth não é chamado quando a entrada é inválida", async () => {
-  const app = ambiente();
+test("login vazio é conferido pela API e não grava sessão", async () => {
+  const app = ambiente({
+    nativeResponse: { data: null, error: { status: 400, message: "Invalid email" } },
+  });
   const resultado = await app
     .carregar("app/(auth)/actions.ts")
     .entrar({ email: "", senha: "" }, "/perfil");
-  assert.equal(typeof resultado.erro, "string");
-  assert.equal(app.chamadasNativas.length, 0);
+  assert.equal(resultado.erro, "E-mail ou senha inválidos.");
+  assert.equal(app.chamadasNativas.length, 1);
   assert.equal(app.cookiesEscritos.length, 0);
+});
+
+test("cadastro recusado pelo Zod da API mostra a mensagem do campo", async () => {
+  for (const [erro, mensagem] of [
+    [{ status: 400, code: "INVALID_CPF", message: "CPF inválido.", issues: [{ field: "cpf", message: "CPF inválido." }] }, "CPF inválido."],
+    [{ status: 400, code: "INVALID_SIGN_UP_DATA", message: "Dados de cadastro inválidos.", issues: [{ field: "name", message: "Nome deve ter no mínimo 3 caracteres." }] }, "Nome deve ter no mínimo 3 caracteres."],
+    [{ status: 400 }, "Não foi possível criar a conta. Verifique os dados e tente novamente."],
+  ]) {
+    const app = ambiente({
+      sessionResponse: { data: null, error: null },
+      signupResponse: { data: null, error: erro },
+    });
+    const resultado = await app.carregar("app/(auth)/actions.ts").cadastrar({
+      nome: "A",
+      email: "maria@example.test",
+      cpf: "123",
+      telefone: "",
+      cidade: "São Paulo",
+      uf: "SP",
+      senha: "Teste123!",
+      confirmarSenha: "Teste123!",
+      termos: true,
+    });
+    assert.equal(resultado.erro, mensagem);
+    assert.equal(app.chamadasNativas.length, 1);
+  }
+});
+
+test("cadastro recusado por outro motivo mantém mensagem localizada, sem expor a da API", async () => {
+  for (const [status, mensagem] of [
+    [409, "Já existe uma conta com estes dados."],
+    [429, "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente."],
+    [500, "Não foi possível criar a conta. Verifique os dados e tente novamente."],
+  ]) {
+    const app = ambiente({
+      signupResponse: { data: null, error: { status, message: "Native server message" } },
+    });
+    const resultado = await app.carregar("app/(auth)/actions.ts").cadastrar({
+      nome: "Maria da Silva",
+      email: "maria@example.test",
+      cpf: "529.982.247-25",
+      telefone: "",
+      cidade: "São Paulo",
+      uf: "SP",
+      senha: "Teste123!",
+      confirmarSenha: "Teste123!",
+      termos: true,
+    });
+    assert.equal(resultado.erro, mensagem);
+  }
 });
 
 for (const [status, mensagem] of [

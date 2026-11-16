@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
 import { ErroApi } from "@/lib/api";
 import { fetchApiAutenticado, getUsuarioLogado } from "@/lib/auth-server";
+import { ID_DOACAO } from "@/lib/doacao-validation";
 
 type ResultadoRecebimento = { sucesso: boolean; mensagem: string };
 type Referencia = string | { _id?: string | null } | null | undefined;
@@ -19,7 +20,6 @@ type ItemRecebimento = {
   interesse_aceito_id?: Referencia;
 };
 
-const idValido = /^(?:[a-f\d]{24}|[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12})$/i;
 class ErroFormulario extends Error {}
 
 function referenciaId(referencia: Referencia) {
@@ -52,7 +52,7 @@ export async function confirmarRecebimento(
 ): Promise<ResultadoRecebimento> {
   try {
     const valor = dados.get("interesseId");
-    if (typeof valor !== "string" || !idValido.test(valor)) {
+    if (typeof valor !== "string" || !ID_DOACAO.test(valor)) {
       throw new ErroFormulario("Solicitação inválida. Atualize a página e tente novamente.");
     }
 
@@ -73,7 +73,7 @@ export async function confirmarRecebimento(
     }
 
     const itemId = referenciaId(interesse.item_id);
-    if (!itemId || !idValido.test(itemId)) {
+    if (!itemId || !ID_DOACAO.test(itemId)) {
       throw new ErroFormulario("Não foi possível identificar a doação. Atualize a página e tente novamente.");
     }
 

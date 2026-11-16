@@ -1,9 +1,9 @@
 import { fetchApi } from "@/lib/api";
+import { ID_DOACAO } from "@/lib/doacao-validation";
 import type { Paginado } from "@/types/api";
 import { CONDICOES, ORDENACOES, type CategoriaFeed, type FiltrosFeed, type ItemFeed } from "@/types/feed";
 
 type Query = Record<string, string | string[] | undefined>;
-const entityId = /^(?:[a-f\d]{24}|[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12})$/i;
 export const UFS = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"];
 
 export function lerFiltros(query: Query): FiltrosFeed {
@@ -14,7 +14,7 @@ export function lerFiltros(query: Query): FiltrosFeed {
   const uf = value("uf").toUpperCase();
   return {
     busca: value("busca"),
-    categoria_id: entityId.test(value("categoria_id")) ? value("categoria_id") : "",
+    categoria_id: ID_DOACAO.test(value("categoria_id")) ? value("categoria_id") : "",
     cidade: value("cidade"), uf: UFS.includes(uf) ? uf : "",
     condicao_item: Object.hasOwn(CONDICOES, condicao) ? condicao as FiltrosFeed["condicao_item"] : "",
     ordenacao: Object.hasOwn(ORDENACOES, ordenacao) ? ordenacao as FiltrosFeed["ordenacao"] : "recentes",

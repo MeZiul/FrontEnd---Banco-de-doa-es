@@ -17,6 +17,18 @@ describe("Cadastro", () => {
     cy.get('[data-test="buttonCriarConta"]').should("be.visible");
   });
 
+  it("deixa digitar a cidade quando o IBGE não responde", () => {
+    cy.intercept("GET", "https://servicodados.ibge.gov.br/**", { forceNetworkError: true }).as("ibge");
+
+    cy.get('[data-test="ufCadastro"]').click();
+    cy.get('[data-test="opcaoUfRO"]').click();
+
+    // Depois da falha (e de uma nova tentativa), o select vira um campo de texto.
+    cy.contains('[role="status"]', "Não foi possível carregar a lista de cidades.", { timeout: 15000 }).should("be.visible");
+    cy.get('[data-test="cidadeCadastro"]').should("not.be.disabled").type("Vilhena");
+    cy.get('[data-test="cidadeCadastro"]').should("have.value", "Vilhena");
+  });
+
   it("cria uma conta nova", () => {
     const conta = criarContaSintetica();
     cy.get('[data-test="nomeCadastro"]').type(conta.nome);
