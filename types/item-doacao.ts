@@ -10,7 +10,7 @@ export type MeuAnuncio = {
 };
 export type InteresseAnuncio = {
   _id: string; item_id: string;
-  usuario_interessado_id: { _id: string; nome: string; cidade: string; uf: string };
+  usuario_interessado_id: { _id: string; nome: string; cidade: string; uf: string; telefone?: string | null; };
   status: "PENDENTE" | "ACEITO" | "RECUSADO" | "CANCELADO" | "EXPIRADO";
   mensagem_interessado?: string | null;
 };
