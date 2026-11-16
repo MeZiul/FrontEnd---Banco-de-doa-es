@@ -4,7 +4,7 @@ import test from 'node:test';
 import vm from 'node:vm';
 import ts from 'typescript';
 
-const Link = function Link() {};
+const Link = function Link() { };
 const usuarioId = '65a100000000000000000001';
 
 function paginado(page = 2, overrides = {}) {
@@ -56,9 +56,9 @@ function carregar({ usuario = { _id: usuarioId, perfil: 'USUARIO', situacao: 'AT
         if (nome === 'react/jsx-runtime') return JSX;
         if (nome === 'next/link') return { __esModule: true, default: Link };
         if (nome === 'lucide-react') return {
-          ChevronLeftIcon: function ChevronLeftIcon() {},
-          ChevronRightIcon: function ChevronRightIcon() {},
-          MoreHorizontalIcon: function MoreHorizontalIcon() {},
+          ChevronLeftIcon: function ChevronLeftIcon() { },
+          ChevronRightIcon: function ChevronRightIcon() { },
+          MoreHorizontalIcon: function MoreHorizontalIcon() { },
         };
         if (nome === '@/components/ui/button') return { buttonVariants: () => 'button' };
         if (nome === '@/lib/utils') return { cn: (...classes) => classes.filter(Boolean).join(' ') };
@@ -75,7 +75,7 @@ function carregar({ usuario = { _id: usuarioId, perfil: 'USUARIO', situacao: 'AT
   }
 
   const PaginacaoLinks = carregarPaginacaoLinks();
-  const icons = Object.fromEntries(['Clock', 'CheckCircle2', 'XCircle', 'Ban', 'User', 'Calendar', 'MapPin', 'Package'].map((name) => [name, function Icon() {}]));
+  const icons = Object.fromEntries(['Clock', 'CheckCircle2', 'XCircle', 'Ban', 'User', 'Calendar', 'MapPin', 'Package'].map((name) => [name, function Icon() { }]));
   const contexto = {
     exports: {},
     AbortSignal: { timeout: (milliseconds) => { timeouts.push(milliseconds); return { milliseconds }; } },
@@ -96,8 +96,9 @@ function carregar({ usuario = { _id: usuarioId, perfil: 'USUARIO', situacao: 'AT
         },
       };
       if (nome === '@/components/shared/paginacao-links') return { PaginacaoLinks };
-      if (nome === '@/components/perfil/confirmar-recebimento-form') return { ConfirmarRecebimentoForm: function ConfirmarRecebimentoForm() {} };
-      if (nome === '@/components/feed/feed-retry') return { FeedRetry: function FeedRetry() {} };
+      if (nome === '@/components/perfil/confirmar-recebimento-form') return { ConfirmarRecebimentoForm: function ConfirmarRecebimentoForm() { } };
+      if (nome === '@/components/feed/feed-retry') return { FeedRetry: function FeedRetry() { } };
+      if (nome === '@/components/perfil/contato-whatsapp') { return { ContatoWhatsapp: () => null } }
       throw new Error('Import inesperado: ' + nome);
     },
   };

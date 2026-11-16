@@ -6,6 +6,7 @@ type UsuarioResumo = {
   email: string;
   cidade: string;
   uf: string;
+  telefone?: string | null;
 };
 
 // Item de GET /interesses

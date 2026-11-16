@@ -7,6 +7,10 @@ import { fetchApiAutenticado, getUsuarioLogado } from "@/lib/auth-server";
 import { campoDoacao, ID_DOACAO } from "@/lib/doacao-validation";
 import type { InteresseAnuncio, MeuAnuncio, ResultadoAnuncio } from "@/types/item-doacao";
 
+type InteresseDetalhado = Omit<InteresseAnuncio, "item_id"> & {
+  item_id: string | { _id: string };
+};
+
 const caminho = "/perfil/meus-anuncios";
 class ErroFormulario extends Error { }
 
@@ -37,12 +41,71 @@ function falha(erro: unknown): ResultadoAnuncio {
 export async function carregarInteressados(id: string): Promise<{ interesses: InteresseAnuncio[]; mensagem?: string }> {
   try {
     const { usuario } = await proprioAnuncio(id);
-    if (usuario.situacao !== "ATIVO") throw new ErroFormulario("Sua conta precisa estar ativa para consultar interessados.");
+
+    if (usuario.situacao !== "ATIVO") {
+      throw new ErroFormulario("Sua conta precisa estar ativa para consultar interessados.");
+    }
+
     const interesses = await fetchApiAutenticado<InteresseAnuncio[]>(`itens/${id}/interesses`);
-    // Os dados de contato não são necessários para escolher um interessado.
-    return { interesses: interesses.map(({ _id, item_id, status, mensagem_interessado, usuario_interessado_id }) => ({ _id, item_id, status, mensagem_interessado, usuario_interessado_id: { _id: usuario_interessado_id._id, nome: usuario_interessado_id.nome, cidade: usuario_interessado_id.cidade, uf: usuario_interessado_id.uf } })) };
+
+    const interessesComContato = await Promise.all(interesses.map(async (interesse) => {
+      let telefone: string | null = null;
+
+      if (interesse.status === "ACEITO") {
+        try {
+          const detalhes = await fetchApiAutenticado<InteresseDetalhado>(`interesses/${interesse._id}`);
+
+          const itemId = typeof detalhes.item_id === "string" ? detalhes.item_id : detalhes.item_id._id;
+
+          if (detalhes.status === "ACEITO" && itemId === id) {
+            telefone = detalhes.usuario_interessado_id.telefone ?? null;
+          }
+
+          // Diagnóstico temporário (sem expor o número).
+          console.log("[Contato do interesse]", {
+            interesseId: interesse._id,
+            status: detalhes.status,
+            itemCorresponde: itemId === id,
+            telefoneDisponivel: Boolean(telefone)
+          });
+        } catch (erro) {
+          unstable_rethrow(erro);
+
+          console.error("[Contato do interesse] Falha na consulta:",
+            erro instanceof ErroApi
+              ? {
+                status: erro.status,
+                mensagem: erro.message,
+              }
+              : "Erro inesperado"
+          );
+        }
+      }
+
+      return {
+        _id: interesse._id,
+        item_id: interesse.item_id,
+        status: interesse.status,
+        mensagem_interessado: interesse.mensagem_interessado,
+        usuario_interessado_id: {
+          _id: interesse.usuario_interessado_id._id,
+          nome: interesse.usuario_interessado_id.nome,
+          cidade: interesse.usuario_interessado_id.cidade,
+          uf: interesse.usuario_interessado_id.uf,
+          ...(interesse.status === "ACEITO"
+            ? { telefone }
+            : {})
+        }
+      };
+    })
+    );
+
+    return { interesses: interessesComContato };
   } catch (erro) {
-    return { interesses: [], mensagem: falha(erro).mensagem };
+    return {
+      interesses: [],
+      mensagem: falha(erro).mensagem
+    };
   }
 }
 
