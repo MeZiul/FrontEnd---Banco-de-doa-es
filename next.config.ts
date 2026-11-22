@@ -2,8 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  /* config options here */
-    allowedDevOrigins: ["192.168.4.119", "172.17.128.1"],
+
+  allowedDevOrigins: process.env.ALLOWED_DEV_ORIGINS?.split(",").map((origem) => origem.trim()).filter(Boolean),
 };
 
 export default nextConfig;

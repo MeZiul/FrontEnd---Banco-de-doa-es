@@ -52,3 +52,7 @@ next-env.d.ts
 /.ai-memory/
 /.local-preview/
 /outputs/
+
+# cypress
+/cypress/screenshots
+/cypress/videos
