@@ -6,6 +6,7 @@ import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSeparator } from 
 import { Input } from "@/components/ui/input"
 import { CampoSenha } from "@/components/shared/campo-senha"
 import { entrar } from "@/app/(auth)/actions"
+import { signIn } from "@/lib/auth-client"
 import { useState, useTransition } from "react"
 import { unstable_rethrow } from "next/navigation"
 import Link from "next/link"
@@ -22,14 +23,24 @@ export function LoginForm({
   const [erro, setErro] = useState<string | null>(null)
   const [carregando, iniciarLogin] = useTransition()
   const [lembrar, setLembrar] = useState(false)
+  const [carregandoGoogle, setCarregandoGoogle] = useState(false)
+  const processando = carregando || carregandoGoogle
+
+  // Impede redirecionamentos para domínios externos
+  const destinoSeguro =
+    destino?.startsWith("/") &&
+      !destino.startsWith("//") &&
+      !destino.startsWith("/\\")
+      ? destino
+      : "/"
 
   function login(e: React.FormEvent) {
     e.preventDefault()
-
     setErro(null)
+
     iniciarLogin(async () => {
       try {
-        const resultado = await entrar({ email, senha: password, lembrar }, destino)
+        const resultado = await entrar({ email, senha: password, lembrar }, destinoSeguro)
         setErro(resultado.erro)
       } catch (erro) {
         unstable_rethrow(erro)
@@ -38,12 +49,35 @@ export function LoginForm({
     })
   }
 
+  // Login social com Google via Better Auth
+  async function loginGoogle() {
+    setErro(null)
+    setCarregandoGoogle(true)
+
+    try {
+      const origin = window.location.origin
+
+      const { error } = await signIn.social({
+        provider: "google",
+        callbackURL: `${origin}/perfil`,
+        errorCallbackURL: `${origin}/login`
+      })
+
+      if (error) {
+        throw new Error(error.message || "Falha ao autenticar com Google")
+      }
+    } catch {
+      setErro("Não foi possível autenticar com Google")
+      setCarregandoGoogle(false)
+    }
+  }
+
   return (
     <form
       className={cn("flex flex-col gap-6", className)}
       {...props}
       onSubmit={login}
-      aria-busy={carregando}
+      aria-busy={processando}
     >
       {cadastroConcluido && (
         <p role="status" className="text-sm text-green-700">Conta criada com sucesso. Entre com seu e-mail e senha.</p>
@@ -76,7 +110,7 @@ export function LoginForm({
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            disabled={carregando}
+            disabled={processando}
           />
         </Field>
 
@@ -91,7 +125,7 @@ export function LoginForm({
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            disabled={carregando}
+            disabled={processando}
           />
 
           <div className="flex items-center justify-between">
@@ -104,7 +138,7 @@ export function LoginForm({
                 id="remember"
                 type="checkbox"
                 className="h-4 w-4 cursor-pointer accent-[#2973ba]"
-                disabled={carregando}
+                disabled={processando}
                 checked={lembrar}
                 onChange={(e) => setLembrar(e.target.checked)}
               />
@@ -125,7 +159,7 @@ export function LoginForm({
         <Field>
           <Button data-test="buttonEntrar"
             type="submit"
-            disabled={carregando}
+            disabled={processando}
             className="w-full cursor-pointer bg-[#2973ba] text-white hover:bg-[#1e5bb4]"
           >
             {carregando ? "Entrando..." : "Entrar"}
@@ -141,9 +175,10 @@ export function LoginForm({
             variant="outline"
             type="button"
             className="w-full cursor-pointer"
-            onClick={() => setErro("Login com Google ainda não implementado")}
-            disabled={carregando}
+            onClick={loginGoogle}
+            disabled={processando}
           >
+
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -170,7 +205,7 @@ export function LoginForm({
               />
             </svg>
 
-            Entrar com Google
+            {carregandoGoogle ? "Conectando ao Google..." : "Entrar com Google"}
           </Button>
 
           <FieldDescription className="text-center">
