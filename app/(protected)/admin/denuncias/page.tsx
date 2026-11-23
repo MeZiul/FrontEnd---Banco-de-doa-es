@@ -5,7 +5,7 @@ import { parseAsInteger, useQueryStates } from "nuqs";
 
 import AdminDenunciaCard from "@/components/admin/admin-denuncia-card";
 import { AdminCardHeader } from "@/components/admin/admin-card-header";
-import DataPagination from "@/components/ui/DataPagination";
+import { PaginacaoLinks } from "@/components/shared/paginacao-links";
 
 import { listarDenunciasAction } from "./actions";
 
@@ -79,11 +79,14 @@ export default function AdminDenunciasPage() {
                 </div>
             )}
 
-            {data && data.totalPages > 1 && (
-                <DataPagination
+            {data && (
+                <PaginacaoLinks
                     pagina={pagina}
                     totalPaginas={data.totalPages}
-                    aoMudarPagina={(novaPagina) => setQuery({ pagina: novaPagina })}
+                    caminho="/admin/denuncias"
+                    parametro="pagina"
+                    rotulo="Paginação das denúncias"
+                    extras={{ limit: String(limit) }}
                 />
             )}
         </div>
