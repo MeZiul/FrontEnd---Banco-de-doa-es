@@ -5,6 +5,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { ShieldCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useQueryStates, parseAsInteger } from "nuqs";
+import { PaginacaoLinks } from "@/components/shared/paginacao-links";
 import { buscarAuditorias } from "./actions";
 
 export default function AdminAuditoriaPage() {
@@ -107,28 +108,15 @@ export default function AdminAuditoriaPage() {
                     ))}
 
                     {data && data.totalPages > 1 && (
-                        <div className="flex items-center justify-between gap-4 border-t pt-4">
-                            <button
-                                type="button"
-                                onClick={() => setQuery({ pagina: pagina - 1 })}
-                                disabled={!data.hasPrevPage || isPending}
-                                className="rounded-md border px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                Anterior
-                            </button>
-
-                            <span className="text-sm text-slate-600">
-                                Página {data.page} de {data.totalPages}
-                            </span>
-
-                            <button
-                                type="button"
-                                onClick={() => setQuery({ pagina: pagina + 1 })}
-                                disabled={!data.hasNextPage || isPending}
-                                className="rounded-md border px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                Próxima
-                            </button>
+                        <div className="border-t pt-4">
+                            <PaginacaoLinks
+                                pagina={pagina}
+                                totalPaginas={data.totalPages}
+                                caminho="/admin/auditoria"
+                                parametro="pagina"
+                                rotulo="Paginação da auditoria"
+                                extras={{ limit: String(limit) }}
+                            />
                         </div>
                     )}
                 </div>

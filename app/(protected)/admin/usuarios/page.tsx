@@ -8,7 +8,7 @@ import type { AdminUsuario, RespostaPaginada } from "./actions";
 import { useQuery } from "@tanstack/react-query";
 import { parseAsInteger, useQueryStates } from "nuqs";
 
-import DataPagination from "@/components/ui/DataPagination";
+import { PaginacaoLinks } from "@/components/shared/paginacao-links";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEffect } from "react";
 
@@ -70,12 +70,6 @@ export default function AdminUsuariosPage() {
         });
     }
 
-    // O DataPagination só oferece páginas que existem; basta ignorar a página atual.
-    function mudarPagina(destino: number) {
-        if (destino === paginaAtual) return;
-
-        setPaginacao({ pagina: destino });
-    }
     return (
         <div className="flex min-h-full flex-1 flex-col gap-5">
             <AdminCardHeader />
@@ -150,10 +144,13 @@ export default function AdminUsuariosPage() {
                             </span>
                         </div>
 
-                        <DataPagination
+                        <PaginacaoLinks
                             pagina={paginaAtual}
                             totalPaginas={Math.max(1, data.totalPages)}
-                            aoMudarPagina={mudarPagina}
+                            caminho="/admin/usuarios"
+                            parametro="pagina"
+                            rotulo="Paginação dos usuários"
+                            extras={{ limit: String(limiteAtual) }}
                         />
                     </div>
 

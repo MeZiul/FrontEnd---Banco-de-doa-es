@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
 import { fetchApiAutenticado } from "@/lib/auth-server";
 import { FeedRetry } from "@/components/feed/feed-retry";
 import { NotificacaoLida } from "@/components/perfil/notificacao-lida";
+import { PaginacaoLinks } from "@/components/shared/paginacao-links";
 import type { Paginado } from "@/types/api";
 
 type Notificacao = {
@@ -77,20 +77,12 @@ export default async function Notificacoes({
           ))}
         </ul>
       )}
-      <nav
-        aria-label="Paginação das notificações"
-        className="flex items-center justify-between gap-4 text-sm text-blue-700"
-      >
-        {lista.hasPrevPage && (
-          <Link href={`?page=${page - 1}`}>Página anterior</Link>
-        )}
-        <span>
-          Página {lista.page} de {lista.totalPages}
-        </span>
-        {lista.hasNextPage && (
-          <Link href={`?page=${page + 1}`}>Próxima página</Link>
-        )}
-      </nav>
+      <PaginacaoLinks
+        pagina={page}
+        totalPaginas={lista.totalPages}
+        caminho="/perfil/notificacoes"
+        rotulo="Paginação das notificações"
+      />
     </section>
   );
 }

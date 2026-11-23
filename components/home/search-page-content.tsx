@@ -5,6 +5,7 @@ import { fotoFeed } from "@/lib/feed";
 import { DonationSearchForm } from "@/components/home/donation-search-form";
 import { ExpandableDonationCard } from "@/components/home/expandable-donation-card";
 import { urlBuscas } from "@/components/home/search-utils";
+import { PaginacaoLinks } from "@/components/shared/paginacao-links";
 
 export function SearchPageContent({
   filtros,
@@ -54,13 +55,16 @@ export function SearchPageContent({
             </div>
           )}
 
-          {(resultado.hasPrevPage || resultado.hasNextPage) && (
-            <nav aria-label="Paginação dos resultados" className="mt-7 flex flex-wrap items-center justify-center gap-4 text-sm font-semibold">
-              {resultado.hasPrevPage && resultado.prevPage && <Link href={urlBuscas(filtros, resultado.prevPage)} className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-blue-800 hover:bg-sky-50">Página anterior</Link>}
-              <span aria-current="page" className="text-slate-700 dark:text-slate-300">Página {resultado.page}</span>
-              {resultado.hasNextPage && resultado.nextPage && <Link href={urlBuscas(filtros, resultado.nextPage)} className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-blue-800 hover:bg-sky-50">Próxima página</Link>}
-            </nav>
-          )}
+          <div className="mt-7">
+            <PaginacaoLinks
+              pagina={resultado.page}
+              totalPaginas={resultado.totalPages}
+              caminho="/busca"
+              rotulo="Paginação dos resultados"
+              // Mantém os filtros da busca, no mesmo formato que urlBuscas usa.
+              extras={Object.fromEntries(new URLSearchParams(urlBuscas(filtros, 1).split("?")[1]))}
+            />
+          </div>
         </section>
       )}
     </div>
