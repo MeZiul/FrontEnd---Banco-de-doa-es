@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { CampoSenha } from "@/components/shared/campo-senha"
 import { entrar } from "@/app/(auth)/actions"
 import { useState, useTransition } from "react"
 import { unstable_rethrow } from "next/navigation"
@@ -84,9 +85,9 @@ export function LoginForm({
             Senha
           </FieldLabel>
 
-          <Input data-test="senhaLogin"
+          <CampoSenha data-test="senhaLogin"
             id="password"
-            type="password"
+            autoComplete="current-password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -150,7 +151,7 @@ export function LoginForm({
             >
               <path
                 fill="#4285F4"
-                d="M21.35 12.23c0-.79-.07-1.54-.2-2.27H12v4.3h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.14c1.84-1.69 2.91-4.18 2.91-7.42Z"
+                d="M21.35 12.23c0-.79-.07-1.54-.2-2.27H12v4.3h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.140c1.84-1.69 2.91-4.18 2.91-7.42Z"
               />
 
               <path
