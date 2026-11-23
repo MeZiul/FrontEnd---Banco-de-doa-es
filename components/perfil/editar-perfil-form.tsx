@@ -7,39 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { salvarPerfil } from "@/app/(protected)/perfil/editar/actions";
 import type { DadosPerfil } from "@/lib/perfil-validation";
-
-const ufs = [
-  "AC",
-  "AL",
-  "AP",
-  "AM",
-  "BA",
-  "CE",
-  "DF",
-  "ES",
-  "GO",
-  "MA",
-  "MT",
-  "MS",
-  "MG",
-  "PA",
-  "PB",
-  "PR",
-  "PE",
-  "PI",
-  "RJ",
-  "RN",
-  "RS",
-  "RO",
-  "RR",
-  "SC",
-  "SP",
-  "SE",
-  "TO",
-];
+import { mascararTelefone, somenteDigitos } from "@/lib/mascaras";
+import { UfSelect } from "@/components/shared/uf-select";
+import { CidadeSelect } from "@/components/shared/cidade-select";
 
 export function EditarPerfilForm({ perfil }: { perfil: DadosPerfil }) {
-  const [dados, setDados] = useState(perfil);
+  const [dados, setDados] = useState({ ...perfil, telefone: mascararTelefone(perfil.telefone) });
   const campo = (nome: keyof DadosPerfil) => ({
     value: dados[nome],
     onChange: (
@@ -48,6 +21,9 @@ export function EditarPerfilForm({ perfil }: { perfil: DadosPerfil }) {
       >,
     ) => setDados((atual) => ({ ...atual, [nome]: event.target.value })),
   });
+  // Trocar de estado limpa a cidade (a lista de cidades muda junto).
+  const mudarUf = (uf: string) =>
+    setDados((atual) => ({ ...atual, uf, cidade: atual.uf === uf ? atual.cidade : "" }));
   const [resultado, action, pending] = useActionState(salvarPerfil, {
     sucesso: false,
     mensagem: "",
@@ -93,45 +69,32 @@ export function EditarPerfilForm({ perfil }: { perfil: DadosPerfil }) {
           <Label htmlFor="perfil-telefone">Telefone (opcional)</Label>
           <Input
             id="perfil-telefone"
-            name="telefone"
-            {...campo("telefone")}
+            value={dados.telefone}
+            onChange={(event) => setDados((atual) => ({ ...atual, telefone: mascararTelefone(event.target.value) }))}
             type="tel"
+            inputMode="numeric"
             autoComplete="tel"
-            maxLength={30}
+            placeholder="(69) 99999-0000"
             disabled={pending}
           />
+          {/* Envia só os números, como no cadastro. */}
+          <input type="hidden" name="telefone" value={somenteDigitos(dados.telefone)} />
+        </div>
+        {/* A UF vem antes: a lista de cidades depende do estado escolhido. */}
+        <div className="space-y-2">
+          <Label htmlFor="perfil-uf">Estado (UF)</Label>
+          <UfSelect id="perfil-uf" value={dados.uf} onValueChange={mudarUf} placeholder="Selecione a UF" />
+          <input type="hidden" name="uf" value={dados.uf} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="perfil-cidade">Cidade</Label>
-          <Input
+          <CidadeSelect
             id="perfil-cidade"
-            name="cidade"
-            {...campo("cidade")}
-            autoComplete="address-level2"
-            minLength={2}
-            maxLength={100}
-            required
-            disabled={pending}
+            uf={dados.uf}
+            value={dados.cidade}
+            onValueChange={(cidade) => setDados((atual) => ({ ...atual, cidade }))}
           />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="perfil-uf">Estado (UF)</Label>
-          <select
-            id="perfil-uf"
-            name="uf"
-            {...campo("uf")}
-            autoComplete="address-level1"
-            required
-            disabled={pending}
-            className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-50"
-          >
-            <option value="">Selecione a UF</option>
-            {ufs.map((uf) => (
-              <option key={uf} value={uf}>
-                {uf}
-              </option>
-            ))}
-          </select>
+          <input type="hidden" name="cidade" value={dados.cidade} />
         </div>
         <div className="space-y-2 sm:col-span-2">
           <Label htmlFor="perfil-bio">Sobre você (opcional)</Label>

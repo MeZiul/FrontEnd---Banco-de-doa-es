@@ -6,6 +6,7 @@ import { criarDoacao } from "@/app/(protected)/doacoes/nova/actions";
 import { validarFotos } from "@/lib/doacao-validation";
 import { CONDICOES, type CategoriaFeed } from "@/types/feed";
 import { UFS } from "@/lib/feed";
+import { CidadeSelect } from "@/components/shared/cidade-select";
 
 const campo =
   "mt-1 w-full rounded-lg border border-slate-300 bg-white p-3 text-sm focus-visible:outline-blue-600";
@@ -24,6 +25,7 @@ export function NovaDoacaoForm({
   const [pendente, iniciar] = useTransition();
   const [enviadas, setEnviadas] = useState(0);
   const [fotosPendentes, setFotosPendentes] = useState<File[]>([]);
+  const [local, setLocal] = useState({ uf, cidade });
 
   function enviar(dados: FormData) {
     iniciar(async () => {
@@ -152,23 +154,16 @@ export function NovaDoacaoForm({
               ))}
             </select>
           </label>
-          <label className="text-sm font-medium">
-            Cidade
-            <input
-              name="cidade"
-              required
-              maxLength={100}
-              defaultValue={cidade}
-              className={campo}
-            />
-          </label>
+          {/* A UF vem antes: a lista de cidades depende do estado escolhido. */}
           <label className="text-sm font-medium">
             UF
             <select
               aria-label="UF"
               name="uf"
               required
-              defaultValue={uf}
+              value={local.uf}
+              // Trocar de estado limpa a cidade (a lista de cidades muda junto).
+              onChange={(evento) => setLocal({ uf: evento.target.value, cidade: evento.target.value === local.uf ? local.cidade : "" })}
               className={campo}
             >
               <option value="" disabled>
@@ -179,6 +174,18 @@ export function NovaDoacaoForm({
               ))}
             </select>
           </label>
+          <div className="text-sm font-medium">
+            <label htmlFor="doacao-cidade">Cidade</label>
+            <div className="mt-1">
+              <CidadeSelect
+                id="doacao-cidade"
+                uf={local.uf}
+                value={local.cidade}
+                onValueChange={(valor) => setLocal((atual) => ({ ...atual, cidade: valor }))}
+              />
+            </div>
+            <input type="hidden" name="cidade" value={local.cidade} />
+          </div>
           <label className="text-sm font-medium sm:col-span-2">
             Bairro (opcional)
             <input name="bairro" maxLength={100} className={campo} />
