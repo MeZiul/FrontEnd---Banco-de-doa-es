@@ -2,7 +2,7 @@ import "server-only";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { ErroApi } from "@/lib/api";
 import { fetchApiAutenticado } from "@/lib/auth-server";
-import { administradorAtivo, consultarMetricasAdmin } from "@/lib/admin-metrics";
+import { administradorAtivo, montarDashboardAdmin } from "@/lib/admin-metrics";
 import type { Usuario } from "@/types/usuario";
 
 export async function exigirAdministradorAtivo() {
@@ -24,8 +24,13 @@ function tratarErroDeAcesso(erro: unknown) {
 export async function obterDashboardAdmin() {
   // Uma guarda na página/DAL evita depender apenas da reutilização do layout.
   await exigirAdministradorAtivo();
-  return consultarMetricasAdmin(
-    (caminho, params) => fetchApiAutenticado(caminho, { params, signal: AbortSignal.timeout(10_000) }),
-    tratarErroDeAcesso,
-  );
+  try {
+    // Um único snapshot: os seis contadores saem da mesma transação no back.
+    return montarDashboardAdmin(await fetchApiAutenticado("admin/metricas", { signal: AbortSignal.timeout(10_000) }));
+  } catch (erro) {
+    // Perda de sessão ou de acesso redireciona; outras falhas mostram os cards como indisponíveis.
+    tratarErroDeAcesso(erro);
+    console.error("Falha ao consultar as métricas do dashboard.", erro);
+    return montarDashboardAdmin(null);
+  }
 }
