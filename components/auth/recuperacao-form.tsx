@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { CampoSenha } from "@/components/shared/campo-senha";
 import {
   redefinirSenha,
   solicitarRecuperacao,
@@ -57,10 +58,9 @@ export function RecuperacaoForm({
                 <input type="hidden" name="token" value={token ?? ""} />
                 <Field>
                   <FieldLabel htmlFor="novaSenha">Nova senha</FieldLabel>
-                  <Input
+                  <CampoSenha
                     id="novaSenha"
                     name="novaSenha"
-                    type="password"
                     autoComplete="new-password"
                     minLength={8}
                     maxLength={128}
@@ -80,10 +80,9 @@ export function RecuperacaoForm({
                   <FieldLabel htmlFor="confirmarSenha">
                     Confirmar nova senha
                   </FieldLabel>
-                  <Input
+                  <CampoSenha
                     id="confirmarSenha"
                     name="confirmarSenha"
-                    type="password"
                     autoComplete="new-password"
                     minLength={8}
                     maxLength={128}
