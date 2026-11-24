@@ -19,6 +19,7 @@ export default async function AdminDashboardPage() {
     <nav aria-label="Áreas administrativas" className="flex flex-wrap gap-4 text-sm font-semibold text-primary">
       <Link href="/admin/usuarios" className="underline underline-offset-4">Usuários</Link>
       <Link href="/admin/denuncias" className="underline underline-offset-4">Denúncias</Link>
+      <Link href="/admin/categorias" className="underline underline-offset-4">Categorias</Link>
       <Link href="/admin/auditoria" className="underline underline-offset-4">Auditoria</Link>
     </nav>
   </main>;
