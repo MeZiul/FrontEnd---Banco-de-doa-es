@@ -9,10 +9,11 @@ import { UfSelect } from "@/components/shared/uf-select"
 import { CidadeSelect } from "@/components/shared/cidade-select"
 import { CampoSenha } from "@/components/shared/campo-senha"
 import { mascararCpf, mascararTelefone } from "@/lib/mascaras"
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect } from "react"
 import { cadastrar as cadastrarConta } from "@/app/(auth)/actions"
 import { unstable_rethrow } from "next/navigation"
 import Link from "next/link"
+import { authClient } from "@/lib/auth-client";
 
 export function SignupForm({
   className,
@@ -47,21 +48,69 @@ export function SignupForm({
     setDados((atual) => ({ ...atual, uf, cidade: atual.uf === uf ? atual.cidade : "" }))
   }
 
+  const { data: sessao, isPending: verificandoSessao } = authClient.useSession();
+
+  const [retornoGoogle, setRetornoGoogle] = useState(false);
+
+  useEffect(() => {
+    const parametros = new URLSearchParams(window.location.search);
+
+    setRetornoGoogle(parametros.get("origem") === "google");
+  }, []);
+
+  const modoGoogle = Boolean(retornoGoogle && sessao?.user);
+
+  useEffect(() => {
+    if (!modoGoogle || !sessao?.user) return;
+
+    setDados((atual) => ({
+      ...atual,
+      nome: sessao.user.name ?? "",
+      email: sessao.user.email ?? "",
+      senha: "",
+      confirmarSenha: ""
+    }));
+  }, [modoGoogle, sessao?.user]);
 
   function cadastrar(e: React.FormEvent) {
-    e.preventDefault()
+    e.preventDefault();
+    setErro(null);
 
-    setErro(null)
+    if (modoGoogle) {
+      setErro("A integração para salvar os dados complementares ainda precisa ser configurada");
+      return;
+    }
 
     iniciarCadastro(async () => {
       try {
-        const resultado = await cadastrarConta(dados)
-        setErro(resultado.erro)
+        const resultado = await cadastrarConta(dados);
+        setErro(resultado.erro);
       } catch (erro) {
-        unstable_rethrow(erro)
-        setErro("Não foi possível criar a conta. Tente novamente.")
+        unstable_rethrow(erro);
+        setErro("Não foi possível criar a conta. Tente novamente");
       }
-    })
+    });
+  }
+
+  async function cadastrarComGoogle() {
+    setErro(null);
+
+    try {
+      const origem = window.location.origin;
+
+      const { error } = await authClient.signIn.social({
+        provider: "google",
+        requestSignUp: true,
+        callbackURL: `${origem}/cadastro?origem=google`,
+        errorCallbackURL: `${origem}/cadastro`,
+      });
+
+      if (error) {
+        setErro(error.message ?? "Não foi possível autenticar com Google");
+      }
+    } catch {
+      setErro("Erro ao conectar com Google");
+    }
   }
 
   return (
@@ -72,165 +121,180 @@ export function SignupForm({
         <div role="alert" data-test="mensagemErroCadastro" className="text-red-500 text-sm">{erro}</div>
       )}
       <fieldset disabled={carregando} aria-busy={carregando} className="min-w-0 border-0 p-0">
-      <FieldGroup>
-        <div className="flex flex-col items-center gap-1 text-center">
-          <h1 className="text-2xl font-bold">Criar sua conta</h1>
-          <p className="text-sm text-balance text-muted-foreground">
-            Preencha seus dados. Leva menos de dois minutos.
-          </p>
-        </div>
-        <Field>
-          <FieldLabel htmlFor="name">Nome Completo</FieldLabel>
-          <Input data-test="nomeCadastro"
-            id="name"
-            type="text"
-            placeholder="Maria da Silva"
-            required
-            className="bg-background"
-            value={dados.nome}
-            onChange={(e) => atualizarCampo("nome", e.target.value)}
-          />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="email">Email</FieldLabel>
-          <Input data-test="emailCadastro"
-            id="email"
-            type="email"
-            placeholder="seu@email.com"
-            required
-            className="bg-background"
-            value={dados.email}
-            onChange={(e) => atualizarCampo("email", e.target.value)}
-          />
-        </Field>
-        <div className="flex gap-3">
-          <Field className="flex-1">
-            <FieldLabel htmlFor="cpf">CPF</FieldLabel>
-            <Input data-test="cpfCadastro"
-              id="cpf"
+        <FieldGroup>
+          <div className="flex flex-col items-center gap-1 text-center">
+            <h1 className="text-2xl font-bold">Criar sua conta</h1>
+            <p className="text-sm text-balance text-muted-foreground">
+              Preencha seus dados. Leva menos de dois minutos.
+            </p>
+          </div>
+          <Field>
+            <FieldLabel htmlFor="name">Nome Completo</FieldLabel>
+            <Input data-test="nomeCadastro"
+              id="name"
               type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              placeholder="000.000.000-00"
-              maxLength={14}
+              placeholder="Maria da Silva"
               required
               className="bg-background"
-              value={dados.cpf}
-              onChange={(e) => atualizarCampo("cpf", mascararCpf(e.target.value))}
+              value={dados.nome}
+              onChange={(e) => atualizarCampo("nome", e.target.value)}
+              readOnly={modoGoogle}
             />
           </Field>
-
-          <Field className="flex-1">
-            <FieldLabel htmlFor="telefone">Telefone</FieldLabel>
-            <Input data-test="telefoneCadastro"
-              id="telefone"
-              type="tel"
-              inputMode="numeric"
-              autoComplete="tel-national"
-              placeholder="(00) 00000-0000"
-              maxLength={15}
+          <Field>
+            <FieldLabel htmlFor="email">Email</FieldLabel>
+            <Input data-test="emailCadastro"
+              id="email"
+              type="email"
+              placeholder="seu@email.com"
               required
               className="bg-background"
-              value={dados.telefone}
-              onChange={(e) => atualizarCampo("telefone", mascararTelefone(e.target.value))}
+              value={dados.email}
+              onChange={(e) => atualizarCampo("email", e.target.value)}
+              readOnly={modoGoogle}
             />
           </Field>
-        </div>
-        {/* A UF vem antes: a lista de cidades depende do estado escolhido. */}
-        <div className="flex gap-3">
-          <Field className="w-20">
-            <FieldLabel htmlFor="estado">UF</FieldLabel>
-            <UfSelect
-              id="estado"
-              value={dados.uf}
-              dataTest="ufCadastro"
-              onValueChange={mudarUf} />
-          </Field>
+          <div className="flex gap-3">
+            <Field className="flex-1">
+              <FieldLabel htmlFor="cpf">CPF</FieldLabel>
+              <Input data-test="cpfCadastro"
+                id="cpf"
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="000.000.000-00"
+                maxLength={14}
+                required
+                className="bg-background"
+                value={dados.cpf}
+                onChange={(e) => atualizarCampo("cpf", mascararCpf(e.target.value))}
+              />
+            </Field>
 
-          <Field className="flex-1">
-            <FieldLabel htmlFor="cidade">Cidade</FieldLabel>
-            <CidadeSelect
-              id="cidade"
-              uf={dados.uf}
-              value={dados.cidade}
-              dataTest="cidadeCadastro"
-              onValueChange={(valor) => atualizarCampo("cidade", valor)}
-            />
-          </Field>
-        </div>
-        <Field>
-          <FieldLabel htmlFor="password">Senha</FieldLabel>
-          <CampoSenha data-test="senhaCadastro"
-            id="password"
-            autoComplete="new-password"
-            required
-            className="bg-background"
-            value={dados.senha}
-            onChange={(e) => atualizarCampo("senha", e.target.value)}
-          />
-          <FieldDescription>
-            De 8 a 128 caracteres, com maiúscula, minúscula, número e um símbolo @$!%*?&.
-          </FieldDescription>
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="confirm-password">Confirmar Senha</FieldLabel>
-          <CampoSenha data-test="confirmarSenhaCadastro"
-            id="confirm-password"
-            autoComplete="new-password"
-            required
-            className="bg-background"
-            value={dados.confirmarSenha}
-            onChange={(e) => atualizarCampo("confirmarSenha", e.target.value)}
-          />
-          <FieldDescription>Por favor, confirme sua senha.</FieldDescription>
-        </Field>
-        <label
-          htmlFor="termos"
-          className="flex items-top gap-2 text-sm text-muted-foreground cursor-pointer"
-        >
-          <input data-test="termosCadastro"
-            id="termos"
-            type="checkbox"
-            className="h-4 w-4 cursor-pointer accent-[#2973ba]"
-            checked={dados.termos}
-            onChange={(e) => atualizarCampo("termos", e.target.checked)}
-          />
+            <Field className="flex-1">
+              <FieldLabel htmlFor="telefone">Telefone</FieldLabel>
+              <Input data-test="telefoneCadastro"
+                id="telefone"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel-national"
+                placeholder="(00) 00000-0000"
+                maxLength={15}
+                required
+                className="bg-background"
+                value={dados.telefone}
+                onChange={(e) => atualizarCampo("telefone", mascararTelefone(e.target.value))}
+              />
+            </Field>
+          </div>
+          {/* A UF vem antes: a lista de cidades depende do estado escolhido. */}
+          <div className="flex gap-3">
+            <Field className="w-20">
+              <FieldLabel htmlFor="estado">UF</FieldLabel>
+              <UfSelect
+                id="estado"
+                value={dados.uf}
+                dataTest="ufCadastro"
+                onValueChange={mudarUf} />
+            </Field>
 
-          <span>Li e aceito os <Link href="/termos" className="text-blue-700 underline" target="_blank" rel="noopener noreferrer">termos de uso</Link> e a <Link href="/privacidade" className="text-blue-700 underline" target="_blank" rel="noopener noreferrer">política de privacidade</Link> do Doaí</span>
-        </label>
-        <Field>
-          <Button data-test="buttonCriarConta" type="submit" disabled={carregando}>{carregando ? "Criando conta..." : "Criar Conta"}</Button>
-        </Field>
-        <FieldSeparator>Ou continuar com</FieldSeparator>
-        <Field>
-          <Button data-test="buttonGoogleCadastro" variant="outline" type="button" className="w-full cursor-pointer"
-            onClick={() => setErro("Não implementado ainda")}
+            <Field className="flex-1">
+              <FieldLabel htmlFor="cidade">Cidade</FieldLabel>
+              <CidadeSelect
+                id="cidade"
+                uf={dados.uf}
+                value={dados.cidade}
+                dataTest="cidadeCadastro"
+                onValueChange={(valor) => atualizarCampo("cidade", valor)}
+              />
+            </Field>
+          </div>
+          {!modoGoogle && (
+
+            <Field>
+              <FieldLabel htmlFor="password">Senha</FieldLabel>
+              <CampoSenha data-test="senhaCadastro"
+                id="password"
+                autoComplete="new-password"
+                required
+                className="bg-background"
+                value={dados.senha}
+                onChange={(e) => atualizarCampo("senha", e.target.value)}
+              />
+              <FieldDescription>
+                De 8 a 128 caracteres, com maiúscula, minúscula, número e um símbolo @$!%*?&.
+              </FieldDescription>
+            </Field>
+          )}
+          {!modoGoogle && (
+
+            <Field>
+              <FieldLabel htmlFor="confirm-password">Confirmar Senha</FieldLabel>
+              <CampoSenha data-test="confirmarSenhaCadastro"
+                id="confirm-password"
+                autoComplete="new-password"
+                required
+                className="bg-background"
+                value={dados.confirmarSenha}
+                onChange={(e) => atualizarCampo("confirmarSenha", e.target.value)}
+              />
+              <FieldDescription>Por favor, confirme sua senha.</FieldDescription>
+            </Field>
+          )}
+          <label
+            htmlFor="termos"
+            className="flex items-top gap-2 text-sm text-muted-foreground cursor-pointer"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              className="size-4"
-            >
-              <path
-                fill="#4285F4"
-                d="M21.35 12.23c0-.79-.07-1.54-.2-2.27H12v4.3h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.14c1.84-1.69 2.91-4.18 2.91-7.42Z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 21.5c2.63 0 4.84-.87 6.45-2.35l-3.14-2.45c-.87.58-1.98.92-3.31.92-2.54 0-4.69-1.72-5.46-4.03H3.3v2.53A9.75 9.75 0 0 0 12 21.5Z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M6.54 13.59A5.86 5.86 0 0 1 6.23 12c0-.55.11-1.09.31-1.59V7.88H3.3A9.75 9.75 0 0 0 2.25 12c0 1.57.38 3.05 1.05 4.12l3.24-2.53Z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 6.38c1.43 0 2.71.49 3.72 1.45l2.79-2.79C16.83 3.48 14.63 2.5 12 2.5a9.75 9.75 0 0 0-8.7 5.38l3.24 2.53C7.31 8.1 9.46 6.38 12 6.38Z"
-              />
-            </svg>
+            <input data-test="termosCadastro"
+              id="termos"
+              type="checkbox"
+              className="h-4 w-4 cursor-pointer accent-[#2973ba]"
+              checked={dados.termos}
+              onChange={(e) => atualizarCampo("termos", e.target.checked)}
+            />
 
-            Entrar com Google
-          </Button>
+            <span>Li e aceito os <Link href="/termos" className="text-blue-700 underline" target="_blank" rel="noopener noreferrer">termos de uso</Link> e a <Link href="/privacidade" className="text-blue-700 underline" target="_blank" rel="noopener noreferrer">política de privacidade</Link> do Doaí</span>
+          </label>
+          <Field>
+            <Button data-test="buttonCriarConta" type="submit" disabled={carregando || verificandoSessao}>{carregando ? "Salvando..." : modoGoogle ? "Concluir cadastro" : "Criar Conta"}</Button>
+          </Field>
+
+          {!modoGoogle && (
+            <>
+              <FieldSeparator>Ou continuar com</FieldSeparator>
+              <Field>
+
+                <Button data-test="buttonGoogleCadastro" variant="outline" type="button" className="w-full cursor-pointer"
+                  onClick={cadastrarComGoogle}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    className="size-4"
+                  >
+                    <path
+                      fill="#4285F4"
+                      d="M21.35 12.23c0-.79-.07-1.54-.2-2.27H12v4.3h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.14c1.84-1.69 2.91-4.18 2.91-7.42Z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 21.5c2.63 0 4.84-.87 6.45-2.35l-3.14-2.45c-.87.58-1.98.92-3.31.92-2.54 0-4.69-1.72-5.46-4.03H3.3v2.53A9.75 9.75 0 0 0 12 21.5Z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M6.54 13.59A5.86 5.86 0 0 1 6.23 12c0-.55.11-1.09.31-1.59V7.88H3.3A9.75 9.75 0 0 0 2.25 12c0 1.57.38 3.05 1.05 4.12l3.24-2.53Z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 6.38c1.43 0 2.71.49 3.72 1.45l2.79-2.79C16.83 3.48 14.63 2.5 12 2.5a9.75 9.75 0 0 0-8.7 5.38l3.24 2.53C7.31 8.1 9.46 6.38 12 6.38Z"
+                    />
+                  </svg>
+
+                  Entrar com Google
+                </Button>
+              </Field>
+            </>
+          )}
           <FieldDescription className="px-6 text-center">
             Já tem uma conta?{" "}
             <Link data-test="buttonFazerLogin"
@@ -240,8 +304,7 @@ export function SignupForm({
               Entrar
             </Link>
           </FieldDescription>
-        </Field>
-      </FieldGroup>
+        </FieldGroup>
       </fieldset>
     </form>
   )
