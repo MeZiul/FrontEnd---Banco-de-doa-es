@@ -1,6 +1,7 @@
 "use server";
 
 import { fetchApiAutenticado } from "@/lib/auth-server";
+import { FILTROS_DENUNCIAS, filtrosValidos } from "@/lib/admin-filtros";
 
 export interface UsuarioDenuncia {
     _id: string;
@@ -68,6 +69,7 @@ const LIMITES_PERMITIDOS = [5, 10, 20, 50];
 export async function listarDenunciasAction(
     pagina: number,
     limit: number,
+    filtros: Record<string, unknown> = {},
 ): Promise<DadosPaginados<AdminDenuncia>> {
     if (!Number.isSafeInteger(pagina) || pagina < 1) throw new Error("Página inválida.");
 
@@ -79,6 +81,8 @@ export async function listarDenunciasAction(
             params: {
                 page: pagina,
                 limit,
+                // Argumento de Server Action vem do navegador: só passam filtros conhecidos.
+                ...filtrosValidos(FILTROS_DENUNCIAS, filtros),
             },
         },
     );

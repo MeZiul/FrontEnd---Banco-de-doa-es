@@ -4,10 +4,20 @@ import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
 
+function transpilar(path, require) {
+  const contexto = { exports: {}, AbortSignal, require };
+  const source = readFileSync(new URL(path, import.meta.url), "utf8");
+  vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, contexto);
+  return contexto.exports;
+}
+const statusItem = transpilar("../lib/status-item.ts", () => ({}));
+const adminFiltros = transpilar("../lib/admin-filtros.ts", () => statusItem);
+
 function carregar(path) {
   const chamadas = [];
   const contexto = { exports: {}, AbortSignal, require(nome) {
     if (nome === "next/navigation") return { unstable_rethrow: erro => { if (erro.redirect) throw erro; } };
+    if (nome === "@/lib/admin-filtros") return adminFiltros;
     if (nome === "@/lib/auth-server") return { fetchApiAutenticado: async (route, options) => {
       chamadas.push({ route, options });
       const page = options.params.page ?? 1;
@@ -39,5 +49,18 @@ for (const [file, action, route] of [
       await assert.rejects(() => app.exports[action](...args));
     }
     assert.equal(app.chamadas.length, 0);
+  });
+}
+
+// Os filtros chegam do navegador: só os conhecidos e válidos vão para a API.
+for (const [file, action, filtros, esperado] of [
+  ["../app/(protected)/admin/usuarios/actions.ts", "listarUsuarios", { nome: " Ana ", perfil: "ROOT", cpf: "1" }, { nome: "Ana" }],
+  ["../app/(protected)/admin/denuncias/actions.ts", "listarDenunciasAction", { status: "PROCEDENTE", tipo_alvo: "ITEM", motivo: "X" }, { status: "PROCEDENTE", tipo_alvo: "ITEM" }],
+  ["../app/(protected)/admin/auditoria/actions.ts", "buscarAuditorias", { tipo_acao: "CANCELAMENTO_ITEM", alvo_id: "x" }, { tipo_acao: "CANCELAMENTO_ITEM" }],
+]) {
+  test(`${action}: repassa só filtros válidos`, async () => {
+    const app = carregar(file);
+    await app.exports[action](1, 5, filtros);
+    assert.deepEqual(JSON.parse(JSON.stringify(app.chamadas[0].options.params)), { page: 1, limit: 5, ...esperado });
   });
 }
