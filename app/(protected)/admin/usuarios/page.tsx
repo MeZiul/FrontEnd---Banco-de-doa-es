@@ -8,8 +8,11 @@ import type { AdminUsuario, RespostaPaginada } from "./actions";
 import { useQuery } from "@tanstack/react-query";
 import { parseAsInteger, useQueryStates } from "nuqs";
 
+import { BarraFiltros } from "@/components/shared/barra-filtros";
 import { PaginacaoLinks } from "@/components/shared/paginacao-links";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useFiltrosUrl } from "@/hooks/use-filtros-url";
+import { FILTROS_USUARIOS } from "@/lib/admin-filtros";
 import { useEffect } from "react";
 
 const LIMITES_PERMITIDOS = [5, 10, 20, 50];
@@ -30,9 +33,11 @@ export default function AdminUsuariosPage() {
     const paginaAtual = Number.isSafeInteger(pagina) && pagina >= 1 ? pagina : 1;
     const limiteAtual = LIMITES_PERMITIDOS.includes(limit) ? limit : 5;
 
+    const filtros = useFiltrosUrl(FILTROS_USUARIOS);
+
     const { data, isPending, isError, error, isFetching } = useQuery<RespostaPaginada<AdminUsuario>>({
-        queryKey: ["adminUsuarios", paginaAtual, limiteAtual],
-        queryFn: () => listarUsuarios(paginaAtual, limiteAtual),
+        queryKey: ["adminUsuarios", paginaAtual, limiteAtual, filtros],
+        queryFn: () => listarUsuarios(paginaAtual, limiteAtual, filtros),
     });
 
 
@@ -73,6 +78,7 @@ export default function AdminUsuariosPage() {
     return (
         <div className="flex min-h-full flex-1 flex-col gap-5">
             <AdminCardHeader />
+            <BarraFiltros campos={FILTROS_USUARIOS} id="filtros-usuarios" />
 
             {isPending && (
                 <p className="text-muted-foreground">
@@ -150,7 +156,7 @@ export default function AdminUsuariosPage() {
                             caminho="/admin/usuarios"
                             parametro="pagina"
                             rotulo="Paginação dos usuários"
-                            extras={{ limit: String(limiteAtual) }}
+                            extras={{ limit: String(limiteAtual), ...filtros }}
                         />
                     </div>
 

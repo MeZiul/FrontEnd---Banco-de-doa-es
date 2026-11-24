@@ -5,7 +5,10 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { ShieldCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useQueryStates, parseAsInteger } from "nuqs";
+import { BarraFiltros } from "@/components/shared/barra-filtros";
 import { PaginacaoLinks } from "@/components/shared/paginacao-links";
+import { useFiltrosUrl } from "@/hooks/use-filtros-url";
+import { FILTROS_AUDITORIA } from "@/lib/admin-filtros";
 import { buscarAuditorias } from "./actions";
 
 export default function AdminAuditoriaPage() {
@@ -14,9 +17,11 @@ export default function AdminAuditoriaPage() {
         limit: parseAsInteger.withDefault(10),
     });
 
+    const filtros = useFiltrosUrl(FILTROS_AUDITORIA);
+
     const { data, isPending, isError, refetch } = useQuery({
-        queryKey: ["admin", "auditoria", pagina, limit],
-        queryFn: () => buscarAuditorias(pagina, limit),
+        queryKey: ["admin", "auditoria", pagina, limit, filtros],
+        queryFn: () => buscarAuditorias(pagina, limit, filtros),
     });
 
     const dados = data?.docs ?? [];
@@ -56,6 +61,8 @@ export default function AdminAuditoriaPage() {
                 </CardHeader>
 
                 <div className="space-y-3 px-5 pb-5 sm:px-6 sm:pb-6">
+                    <BarraFiltros campos={FILTROS_AUDITORIA} id="filtros-auditoria" />
+
                     <div className="flex flex-wrap items-center justify-between gap-3">
                         <label
                             htmlFor="limite-auditoria"
@@ -115,7 +122,7 @@ export default function AdminAuditoriaPage() {
                                 caminho="/admin/auditoria"
                                 parametro="pagina"
                                 rotulo="Paginação da auditoria"
-                                extras={{ limit: String(limit) }}
+                                extras={{ limit: String(limit), ...filtros }}
                             />
                         </div>
                     )}

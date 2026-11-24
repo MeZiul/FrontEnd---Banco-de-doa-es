@@ -2,6 +2,7 @@
 
 import { unstable_rethrow } from "next/navigation";
 import { fetchApiAutenticado } from "@/lib/auth-server";
+import { FILTROS_USUARIOS, filtrosValidos } from "@/lib/admin-filtros";
 
 export interface AdminUsuario {
   _id: string;
@@ -33,7 +34,8 @@ const LIMITES_PERMITIDOS = [5, 10, 20, 50];
 
 export async function listarUsuarios(
   pagina: number = 1,
-  limit: number = 5
+  limit: number = 5,
+  filtros: Record<string, unknown> = {}
 ): Promise<RespostaPaginada<AdminUsuario>> {
   if (!Number.isSafeInteger(pagina) || pagina < 1) {
     throw new Error("Página inválida.");
@@ -49,6 +51,8 @@ export async function listarUsuarios(
       params: {
         page: pagina,
         limit,
+        // Argumento de Server Action vem do navegador: só passam filtros conhecidos.
+        ...filtrosValidos(FILTROS_USUARIOS, filtros),
       },
     }
   );

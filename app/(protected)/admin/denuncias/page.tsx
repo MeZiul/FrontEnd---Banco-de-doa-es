@@ -5,7 +5,10 @@ import { parseAsInteger, useQueryStates } from "nuqs";
 
 import AdminDenunciaCard from "@/components/admin/admin-denuncia-card";
 import { AdminCardHeader } from "@/components/admin/admin-card-header";
+import { BarraFiltros } from "@/components/shared/barra-filtros";
 import { PaginacaoLinks } from "@/components/shared/paginacao-links";
+import { useFiltrosUrl } from "@/hooks/use-filtros-url";
+import { FILTROS_DENUNCIAS } from "@/lib/admin-filtros";
 
 import { listarDenunciasAction } from "./actions";
 
@@ -15,9 +18,11 @@ export default function AdminDenunciasPage() {
         limit: parseAsInteger.withDefault(20),
     });
 
+    const filtros = useFiltrosUrl(FILTROS_DENUNCIAS);
+
     const { data, isPending, isError, error } = useQuery({
-        queryKey: ["admin", "denuncias", pagina, limit],
-        queryFn: () => listarDenunciasAction(pagina, limit),
+        queryKey: ["admin", "denuncias", pagina, limit, filtros],
+        queryFn: () => listarDenunciasAction(pagina, limit, filtros),
     });
 
     const denuncias = data?.docs ?? [];
@@ -25,6 +30,7 @@ export default function AdminDenunciasPage() {
     return (
         <div className="space-y-6">
             <AdminCardHeader />
+            <BarraFiltros campos={FILTROS_DENUNCIAS} id="filtros-denuncias" />
 
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-muted-foreground">
@@ -86,7 +92,7 @@ export default function AdminDenunciasPage() {
                     caminho="/admin/denuncias"
                     parametro="pagina"
                     rotulo="Paginação das denúncias"
-                    extras={{ limit: String(limit) }}
+                    extras={{ limit: String(limit), ...filtros }}
                 />
             )}
         </div>
