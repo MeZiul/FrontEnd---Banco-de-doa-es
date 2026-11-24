@@ -18,6 +18,7 @@ export default async function AdminDashboardPage() {
     <p className="text-xs text-muted-foreground">Os números se atualizam sozinhos quando há cadastros, doações ou denúncias novas. Use Atualizar indicadores se a atualização automática estiver pausada.</p>
     <nav aria-label="Áreas administrativas" className="flex flex-wrap gap-4 text-sm font-semibold text-primary">
       <Link href="/admin/usuarios" className="underline underline-offset-4">Usuários</Link>
+      <Link href="/admin/itens" className="underline underline-offset-4">Anúncios</Link>
       <Link href="/admin/denuncias" className="underline underline-offset-4">Denúncias</Link>
       <Link href="/admin/categorias" className="underline underline-offset-4">Categorias</Link>
       <Link href="/admin/auditoria" className="underline underline-offset-4">Auditoria</Link>

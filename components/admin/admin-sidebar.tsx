@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Flag, ClipboardList, Tags } from "lucide-react";
+import { LayoutDashboard, Users, Flag, ClipboardList, Tags, Package } from "lucide-react";
 
 const links = [
   {
@@ -14,6 +14,11 @@ const links = [
     href: "/admin/usuarios",
     label: "Usuários",
     icon: Users,
+  },
+  {
+    href: "/admin/itens",
+    label: "Anúncios",
+    icon: Package,
   },
   {
     href: "/admin/denuncias",
