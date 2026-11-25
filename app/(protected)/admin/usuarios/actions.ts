@@ -108,3 +108,18 @@ export async function reativarUsuario(id: string) {
 export async function inativarUsuario(id: string) {
   return alterarSituacaoUsuario(id, "inativar");
 }
+
+/** Promove a administrador ou volta para usuário comum. A API revoga as sessões do usuário. */
+export async function alterarPerfilUsuario(id: string, perfil: "USUARIO" | "ADMINISTRADOR"): Promise<ResultadoAcao> {
+  if (!id) return { ok: false, erro: "Usuário inválido." };
+  // Argumento de Server Action vem do navegador.
+  if (perfil !== "USUARIO" && perfil !== "ADMINISTRADOR") return { ok: false, erro: "Perfil inválido." };
+
+  try {
+    await fetchApiAutenticado(`admin/usuarios/${encodeURIComponent(id)}/perfil`, { metodo: "PATCH", body: { perfil } });
+    return { ok: true };
+  } catch (e) {
+    unstable_rethrow(e);
+    return { ok: false, erro: e instanceof Error ? e.message : "Não foi possível alterar o perfil." };
+  }
+}
