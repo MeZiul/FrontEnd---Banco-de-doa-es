@@ -10,6 +10,7 @@ import { signIn } from "@/lib/auth-client"
 import { useState, useTransition } from "react"
 import { unstable_rethrow } from "next/navigation"
 import Link from "next/link"
+import { destinoInterno } from "@/lib/auth-validation"
 
 export function LoginForm({
   className,
@@ -27,12 +28,7 @@ export function LoginForm({
   const processando = carregando || carregandoGoogle
 
   // Impede redirecionamentos para domínios externos
-  const destinoSeguro =
-    destino?.startsWith("/") &&
-      !destino.startsWith("//") &&
-      !destino.startsWith("/\\")
-      ? destino
-      : "/"
+  const destinoSeguro = destinoInterno(destino)
 
   function login(e: React.FormEvent) {
     e.preventDefault()
@@ -59,12 +55,15 @@ export function LoginForm({
 
       const { error } = await signIn.social({
         provider: "google",
-        callbackURL: `${origin}/perfil`,
+        requestSignUp: false,
+        callbackURL: `${origin}/auth/google?destino=${encodeURIComponent(destinoSeguro)}`,
         errorCallbackURL: `${origin}/login`
       })
 
       if (error) {
-        throw new Error(error.message || "Falha ao autenticar com Google")
+        setErro(error.message || "Não foi possível entrar com Google. Verifique se você já possui uma conta")
+
+        setCarregandoGoogle(false)
       }
     } catch {
       setErro("Não foi possível autenticar com Google")

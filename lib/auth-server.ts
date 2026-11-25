@@ -5,6 +5,7 @@ import { COOKIE_TOKEN, loginDevAtivo } from "@/lib/auth-cookie";
 import {
   autenticarComEmail,
   consultarSessaoNativa,
+  consultarSessaoNativaPorCookie
 } from "@/lib/auth-native-client";
 import type { Usuario } from "@/types/usuario";
 
@@ -33,10 +34,52 @@ async function loginDev(): Promise<string> {
   }
 }
 
-export async function getToken(): Promise<string | undefined> {
+async function getTokenSessaoOAuth(): Promise<string | undefined> {
+  const cookieStore = await cookies();
+
+  const cookiesBetterAuth = cookieStore.getAll().filter(({ name }) =>
+    name.startsWith("better-auth.") ||
+    name.startsWith("__Secure-better-auth.")
+  );
+
+  if (!cookiesBetterAuth.length) return undefined;
+
+  const cookieHeader = cookiesBetterAuth
+    .map(({ name, value }) => `${name}=${encodeURIComponent(value)}`)
+    .join("; ");
+
+  const resposta = await consultarSessaoNativaPorCookie(cookieHeader);
+
+  if (resposta.error) {
+    if ([401, 498].includes(resposta.error.status)) {
+      return undefined;
+    }
+
+    throw new Error("Não foi possível verificar a sessão OAuth");
+  }
+
+  const token = resposta.data?.session?.token;
+
+  if (typeof token !== "string" || !token) {
+    return undefined;
+  }
+
+  return token;
+}
+
+export async function getToken({ permitirLoginDev = true } = {}): Promise<string | undefined> {
   const token = (await cookies()).get(COOKIE_TOKEN)?.value;
+
+  // Login tradicional
   if (token) return token;
-  if (loginDevAtivo()) return loginDev();
+
+  // Autenticação OAuth
+  const tokenOAuth = await getTokenSessaoOAuth();
+
+  if (tokenOAuth) return tokenOAuth;
+
+  // Login automático de desenvolvimento.
+  if (permitirLoginDev && loginDevAtivo()) return loginDev();
 }
 
 function sessaoNativaAtiva(valor: unknown): boolean {

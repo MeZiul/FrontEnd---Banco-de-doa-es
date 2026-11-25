@@ -9,20 +9,28 @@ import { UfSelect } from "@/components/shared/uf-select"
 import { CidadeSelect } from "@/components/shared/cidade-select"
 import { CampoSenha } from "@/components/shared/campo-senha"
 import { mascararCpf, mascararTelefone } from "@/lib/mascaras"
-import { useState, useTransition, useEffect } from "react"
-import { cadastrar as cadastrarConta } from "@/app/(auth)/actions"
+import { useState, useTransition } from "react"
+import { cadastrar as cadastrarConta, completarCadastro } from "@/app/(auth)/actions"
 import { unstable_rethrow } from "next/navigation"
 import Link from "next/link"
 import { authClient } from "@/lib/auth-client";
 
+type SignupFormProps = React.ComponentProps<"form"> & {
+  usuarioIncompleto?: {
+    nome: string;
+    email: string;
+  } | null;
+};
+
 export function SignupForm({
   className,
+  usuarioIncompleto = null,
   ...props
-}: React.ComponentProps<"form">) {
+}: SignupFormProps) {
 
   const [dados, setDados] = useState({
-    nome: "",
-    email: "",
+    nome: usuarioIncompleto?.nome ?? "",
+    email: usuarioIncompleto?.email ?? "",
     cpf: "",
     telefone: "",
     cidade: "",
@@ -30,7 +38,7 @@ export function SignupForm({
     senha: "",
     confirmarSenha: "",
     termos: false,
-  })
+  });
 
   const [erro, setErro] = useState<string | null>(null)
 
@@ -48,46 +56,39 @@ export function SignupForm({
     setDados((atual) => ({ ...atual, uf, cidade: atual.uf === uf ? atual.cidade : "" }))
   }
 
-  const { data: sessao, isPending: verificandoSessao } = authClient.useSession();
-
-  const [retornoGoogle, setRetornoGoogle] = useState(false);
-
-  useEffect(() => {
-    const parametros = new URLSearchParams(window.location.search);
-
-    setRetornoGoogle(parametros.get("origem") === "google");
-  }, []);
-
-  const modoGoogle = Boolean(retornoGoogle && sessao?.user);
-
-  useEffect(() => {
-    if (!modoGoogle || !sessao?.user) return;
-
-    setDados((atual) => ({
-      ...atual,
-      nome: sessao.user.name ?? "",
-      email: sessao.user.email ?? "",
-      senha: "",
-      confirmarSenha: ""
-    }));
-  }, [modoGoogle, sessao?.user]);
+  const modoGoogle = Boolean(usuarioIncompleto);
 
   function cadastrar(e: React.FormEvent) {
     e.preventDefault();
     setErro(null);
 
-    if (modoGoogle) {
-      setErro("A integração para salvar os dados complementares ainda precisa ser configurada");
-      return;
-    }
-
     iniciarCadastro(async () => {
       try {
+        // Cadastro complementar de uma conta autenticada pelo Google
+        if (modoGoogle) {
+          const resultado = await completarCadastro({
+            cpf: dados.cpf,
+            telefone: dados.telefone,
+            cidade: dados.cidade,
+            uf: dados.uf,
+            termos: dados.termos
+          });
+
+          setErro(resultado.erro);
+          return;
+        }
+
+        // Cadastro tradicional com e-mail e senha
         const resultado = await cadastrarConta(dados);
+
         setErro(resultado.erro);
       } catch (erro) {
         unstable_rethrow(erro);
-        setErro("Não foi possível criar a conta. Tente novamente");
+
+        setErro(modoGoogle
+          ? "Não foi possível concluir o cadastro. Tente novamente"
+          : "Não foi possível criar a conta. Tente novamente"
+        );
       }
     });
   }
@@ -123,9 +124,14 @@ export function SignupForm({
       <fieldset disabled={carregando} aria-busy={carregando} className="min-w-0 border-0 p-0">
         <FieldGroup>
           <div className="flex flex-col items-center gap-1 text-center">
-            <h1 className="text-2xl font-bold">Criar sua conta</h1>
+            <h1 className="text-2xl font-bold">
+              {modoGoogle ? "Concluir seu cadastro" : "Criar sua conta"}
+            </h1>
+
             <p className="text-sm text-balance text-muted-foreground">
-              Preencha seus dados. Leva menos de dois minutos.
+              {modoGoogle
+                ? "Complete seus dados para começar a utilizar o Doaí"
+                : "Preencha seus dados. Leva menos de dois minutos"}
             </p>
           </div>
           <Field>
@@ -248,6 +254,7 @@ export function SignupForm({
             <input data-test="termosCadastro"
               id="termos"
               type="checkbox"
+              required
               className="h-4 w-4 cursor-pointer accent-[#2973ba]"
               checked={dados.termos}
               onChange={(e) => atualizarCampo("termos", e.target.checked)}
@@ -256,7 +263,7 @@ export function SignupForm({
             <span>Li e aceito os <Link href="/termos" className="text-blue-700 underline" target="_blank" rel="noopener noreferrer">termos de uso</Link> e a <Link href="/privacidade" className="text-blue-700 underline" target="_blank" rel="noopener noreferrer">política de privacidade</Link> do Doaí</span>
           </label>
           <Field>
-            <Button data-test="buttonCriarConta" type="submit" disabled={carregando || verificandoSessao}>{carregando ? "Salvando..." : modoGoogle ? "Concluir cadastro" : "Criar Conta"}</Button>
+            <Button data-test="buttonCriarConta" type="submit" disabled={carregando}>{carregando ? "Salvando..." : modoGoogle ? "Concluir cadastro" : "Criar Conta"}</Button>
           </Field>
 
           {!modoGoogle && (
@@ -293,17 +300,17 @@ export function SignupForm({
                   Entrar com Google
                 </Button>
               </Field>
+              <FieldDescription className="px-6 text-center">
+                Já tem uma conta?{" "}
+                <Link data-test="buttonFazerLogin"
+                  href="/login"
+                  className="text-[#2973ba] font-bold underline underline-offset-4 hover:text-[#1e5bb4]"
+                >
+                  Entrar
+                </Link>
+              </FieldDescription>
             </>
           )}
-          <FieldDescription className="px-6 text-center">
-            Já tem uma conta?{" "}
-            <Link data-test="buttonFazerLogin"
-              href="/login"
-              className="text-[#2973ba] font-bold underline underline-offset-4 hover:text-[#1e5bb4]"
-            >
-              Entrar
-            </Link>
-          </FieldDescription>
         </FieldGroup>
       </fieldset>
     </form>

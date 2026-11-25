@@ -103,3 +103,15 @@ export async function encerrarSessaoNativa(token: string) {
     },
   });
 }
+// Consulta uma sessão nativa do Better Auth utilizando os cookies recebidos pelo servidor Next.js
+export async function consultarSessaoNativaPorCookie(cookieHeader: string,) {
+  return criarClienteAuthNativo().getSession({
+    fetchOptions: {
+      headers: {
+        Origin: new URL(process.env.NEXT_PUBLIC_API_URL!).origin,
+        Cookie: cookieHeader
+      },
+      signal: AbortSignal.timeout(AUTH_TIMEOUT_MS)
+    }
+  });
+}

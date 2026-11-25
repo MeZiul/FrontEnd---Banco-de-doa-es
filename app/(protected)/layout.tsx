@@ -1,6 +1,6 @@
 import { Search, Home, Package, Bell, Heart } from 'lucide-react';
 import Link from 'next/link';
-import { unstable_rethrow } from 'next/navigation';
+import { unstable_rethrow, redirect } from 'next/navigation';
 import UserDropdown from '@/components/layout/user-dropdown';
 import { getUsuarioLogado, fetchApiAutenticado } from '@/lib/auth-server';
 import { FeedRetry } from '@/components/feed/feed-retry';
@@ -11,6 +11,10 @@ export default async function ProtectedLayout({ children }: LayoutProps<"/">) {
   catch (erro) {
     unstable_rethrow(erro);
     return <section role="alert" className="mx-auto my-8 max-w-xl rounded-2xl border bg-white p-6"><h1 className="text-2xl font-bold">Não foi possível carregar sua conta</h1><p className="mt-2">Tente novamente em instantes.</p><FeedRetry /></section>;
+  }
+  // Impede o acesso ao layout protegido enquanto o cadastro estiver incompleto
+  if (usuario.cadastro_completo !== true) {
+    redirect('/cadastro?origem=google');
   }
   let naoLidas: number | null = null;
   try {
