@@ -4,9 +4,11 @@ import { FeedRetry } from "@/components/feed/feed-retry";
 import { fetchApiAutenticado } from "@/lib/auth-server";
 import { listarCategoriasFeed } from "@/lib/feed";
 import type { Usuario } from "@/types/usuario";
+import { redirect } from "next/navigation";
 
 export default async function NovaDoacao() {
   const usuario = await fetchApiAutenticado<Usuario>("perfil", { signal: AbortSignal.timeout(10000) });
+  if (usuario.cadastro_completo !== true || !usuario.cidade || !usuario.uf) redirect("/cadastro?origem=google");
   const categorias = await listarCategoriasFeed().catch(() => null);
   return <main className="mx-auto w-full max-w-3xl space-y-6 px-5 py-8">
     <Link href="/" className="text-sm text-blue-700 underline">Voltar às doações</Link>

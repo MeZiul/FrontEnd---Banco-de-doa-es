@@ -7,6 +7,13 @@ export type Cadastro = {
   uf: string;
   senha: string;
 };
+export type DadosComplementaresCadastro = {
+  cpf: string;
+  telefone: string;
+  cidade: string;
+  uf: string;
+  termos: true;
+};
 
 type Validacao<T> = { dados: T; erro?: never } | { erro: string; dados?: never };
 
@@ -34,7 +41,51 @@ export function validarCadastro(entrada: unknown): Validacao<Cadastro> {
   if (valor.termos !== true) return { erro: "Você precisa aceitar os termos de uso e a política de privacidade." };
   return { dados };
 }
+export function validarCadastroComplementar(entrada: unknown,): Validacao<DadosComplementaresCadastro> {
+  if (!entrada || typeof entrada !== "object" || Array.isArray(entrada)) {
+    return { erro: "Dados de cadastro inválidos" };
+  }
 
+  const valor = entrada as Record<string, unknown>;
+
+  const dados = {
+    cpf: texto(valor.cpf).replace(/\D/g, ""),
+    telefone: texto(valor.telefone).replace(/\D/g, ""),
+    cidade: texto(valor.cidade).trim(),
+    uf: texto(valor.uf).trim().toUpperCase()
+  };
+
+  if (dados.cpf.length !== 11) {
+    return { erro: "Informe um CPF válido." };
+  }
+
+  if (dados.telefone.length !== 10 && dados.telefone.length !== 11) {
+    return {
+      erro: "Informe o telefone com DDD, ex.: (69) 99999-0000",
+    };
+  }
+
+  if (!dados.uf) {
+    return { erro: "Selecione seu estado" };
+  }
+
+  if (dados.cidade.length < 2) {
+    return { erro: "Selecione sua cidade" };
+  }
+
+  if (valor.termos !== true) {
+    return {
+      erro: "Você precisa aceitar os termos de uso e a política de privacidade",
+    };
+  }
+
+  return {
+    dados: {
+      ...dados,
+      termos: true
+    }
+  };
+}
 export function lerLogin(entrada: unknown): { email: string; senha: string; lembrar: boolean } {
   const valor = entrada && typeof entrada === "object" ? entrada as Record<string, unknown> : {};
   return { email: texto(valor.email).trim(), senha: texto(valor.senha), lembrar: valor.lembrar === true };

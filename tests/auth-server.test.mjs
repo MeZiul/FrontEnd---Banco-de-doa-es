@@ -6,6 +6,18 @@ import ts from "typescript";
 
 function ambiente({
   token = "cookie-token",
+  cookiesOAuth = [],
+  sessionResponseOAuth = {
+    data: {
+      session: {
+        id: "oauth-session",
+        token: "oauth-native-token"
+      },
+      user: { id: "better-user" }
+    },
+    error: null
+  },
+  sessionThrowOAuth,
   sessionResponse = {
     data: { session: { id: "session" }, user: { id: "better-user" } },
     error: null,
@@ -18,10 +30,31 @@ function ambiente({
   const chamadasApi = [];
   const chamadasSignIn = [];
   const chamadasSessao = [];
+  const chamadasSessaoOAuth = [];
   const redirecionar = (destino) => {
     throw Object.assign(new Error("Redirect"), { destino });
   };
-  const cookieStore = { get: () => (token ? { value: token } : undefined) };
+  const cookiesArmazenados = new Map(token ? [["doai_token", token]] : []);
+
+  // Registra os cookies adicionais da autenticação OAuth
+  for (const { name, value } of cookiesOAuth) {
+    cookiesArmazenados.set(name, value);
+  }
+
+  const cookieStore = {
+    // Recupera um cookie pelo nome
+    get: (nome) => {
+      const value = cookiesArmazenados.get(nome);
+
+      return value !== undefined ? { name: nome, value } : undefined;
+    },
+
+    // Recupera todos os cookies ou filtra pelo nome
+    getAll: (nome) => {
+      return Array.from(cookiesArmazenados, ([name, value]) => ({ name, value })
+      ).filter((cookie) => nome === undefined || cookie.name === nome);
+    }
+  };
   class ErroApi extends Error {
     constructor(status) {
       super("Falha do domínio");
@@ -37,18 +70,39 @@ function ambiente({
     },
   };
   const authNative = {
+    // Simula o login tradicional e o login de desenvolvimento
     autenticarComEmail: async (...args) => {
       chamadasSignIn.push(args);
       return {
-        data: { token: "dev-native-token", user: { id: "better-user" } },
-        error: null,
+        data: {
+          token: "dev-native-token",
+          user: { id: "better-user" }
+        },
+        error: null
       };
     },
+
+    // Simula a validação de uma sessão por token
     consultarSessaoNativa: async (value) => {
       chamadasSessao.push(value);
-      if (sessionThrow) throw sessionThrow;
+
+      if (sessionThrow) {
+        throw sessionThrow;
+      }
+
       return sessionResponse;
     },
+
+    // Simula a recuperação de uma sessão por cookies OAuth
+    consultarSessaoNativaPorCookie: async (cookieHeader) => {
+      chamadasSessaoOAuth.push(cookieHeader);
+
+      if (sessionThrowOAuth) {
+        throw sessionThrowOAuth;
+      }
+
+      return sessionResponseOAuth;
+    }
   };
   const contexto = {
     exports: {},
@@ -86,6 +140,7 @@ function ambiente({
     chamadasApi,
     chamadasSignIn,
     chamadasSessao,
+    chamadasSessaoOAuth
   };
 }
 
@@ -171,3 +226,134 @@ test("fallback de desenvolvimento também autentica pelo SDK Better Auth", async
     ["perfil"],
   );
 });
+test("sessão OAuth válida permite consultar o perfil de domínio", async () => {
+  const app = ambiente({
+    token: null,
+    cookiesOAuth: [
+      {
+        name: "better-auth.session_token",
+        value: "oauth-cookie"
+      },
+    ],
+  });
+
+  const usuario = await app.auth.getUsuarioLogado();
+
+  assert.equal(usuario._id, "domain-user");
+
+  assert.deepEqual(app.chamadasSessaoOAuth, [
+    "better-auth.session_token=oauth-cookie"
+  ]);
+
+  assert.deepEqual(app.chamadasSessao, [
+    "oauth-native-token"
+  ]);
+
+  assert.equal(app.chamadasApi.length, 1);
+  assert.equal(app.chamadasApi[0].path, "perfil");
+  assert.equal(app.chamadasApi[0].opcoes.token, "oauth-native-token");
+  assert.equal(app.chamadasSignIn.length, 0);
+});
+
+test("reconhece cookies seguros do Better Auth em produção", async () => {
+  const app = ambiente({
+    token: null,
+    env: { NODE_ENV: "production" },
+    cookiesOAuth: [
+      {
+        name: "__Secure-better-auth.session_token",
+        value: "secure-oauth-cookie"
+      }
+    ]
+  });
+
+  const token = await app.auth.getToken();
+
+  assert.equal(token, "oauth-native-token");
+
+  assert.deepEqual(app.chamadasSessaoOAuth, [
+    "__Secure-better-auth.session_token=secure-oauth-cookie"
+  ]);
+
+  assert.equal(app.chamadasSignIn.length, 0);
+});
+
+test("ignora cookies que não pertencem ao Better Auth", async () => {
+  const app = ambiente({
+    token: null,
+    cookiesOAuth: [
+      {
+        name: "tema",
+        value: "dark"
+      },
+      {
+        name: "preferencias",
+        value: "exemplo"
+      },
+      {
+        name: "better-auth.session_token",
+        value: "oauth-cookie"
+      }
+    ]
+  });
+
+  const token = await app.auth.getToken();
+
+  assert.equal(token, "oauth-native-token");
+
+  assert.deepEqual(app.chamadasSessaoOAuth, [
+    "better-auth.session_token=oauth-cookie"
+  ]);
+});
+
+test("sessão OAuth expirada impede acesso à API de domínio", async () => {
+  const app = ambiente({
+    token: null,
+    cookiesOAuth: [
+      {
+        name: "better-auth.session_token",
+        value: "cookie-expirado"
+      }
+    ],
+    sessionResponseOAuth: {
+      data: null,
+      error: null
+    },
+  });
+
+  await assert.rejects(() => app.auth.fetchApiAutenticado("perfil"),
+    (erro) => erro.destino === "/login"
+  );
+
+  assert.equal(app.chamadasSessaoOAuth.length, 1);
+  assert.equal(app.chamadasSessao.length, 0);
+  assert.equal(app.chamadasApi.length, 0);
+  assert.equal(app.chamadasSignIn.length, 0);
+});
+
+test("respostas OAuth 401 e 498 impedem acesso protegido", async () => {
+  for (const status of [401, 498]) {
+    const app = ambiente({
+      token: null,
+      cookiesOAuth: [
+        {
+          name: "better-auth.session_token",
+          value: "cookie-revogado"
+        }
+      ],
+      sessionResponseOAuth: {
+        data: null,
+        error: { status }
+      }
+    });
+
+    await assert.rejects(() => app.auth.fetchApiAutenticado("perfil"),
+      (erro) => erro.destino === "/login"
+    );
+
+    assert.equal(app.chamadasSessaoOAuth.length, 1);
+    assert.equal(app.chamadasSessao.length, 0);
+    assert.equal(app.chamadasApi.length, 0);
+  }
+});
+

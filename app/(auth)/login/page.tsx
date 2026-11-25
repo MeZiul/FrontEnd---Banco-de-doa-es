@@ -1,10 +1,20 @@
 import EsquerdaAutenticacao from "@/components/auth/esqueda-autenticacao";
 import { LoginForm } from "@/components/auth/login-form";
 import { exigirVisitante } from "@/lib/auth-guest";
+import { redirect } from "next/navigation";
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   await exigirVisitante();
   const params = await searchParams;
+
+  const erroGoogle = typeof params.error === "string"
+    ? params.error.toLowerCase()
+    : undefined;
+
+  if (erroGoogle === "signup_disabled") {
+    redirect("/cadastro?origem=google");
+  }
+
   return (
     <div data-test="paginaLogin" className="grid min-h-svh bg-background text-foreground lg:grid-cols-2">
 

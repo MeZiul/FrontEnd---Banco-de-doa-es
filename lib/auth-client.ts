@@ -10,13 +10,14 @@ export const authClient = createAuthClient({
   plugins: [
     inferAdditionalFields({
       user: {
-        cpf: { type: "string" },
-        telefone: { type: "string" },
-        cidade: { type: "string" },
-        uf: { type: "string" },
-      },
-    }),
-  ],
+        cpf:                { type: "string", required: false, input: false },
+        telefone:           { type: "string", required: false, input: false },
+        cidade:             { type: "string", required: false, input: false },
+        uf:                 { type: "string", required: false, input: false },
+        cadastro_completo:  { type: "boolean", required: false, defaultValue: false, input: false }
+      }
+    })
+  ]
 });
 
 export const { signIn, signUp, signOut, useSession } = authClient;
