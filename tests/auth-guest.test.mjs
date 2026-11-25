@@ -27,19 +27,40 @@ function ambiente({
   const cookiesExcluidos = [];
 
   class ErroApi extends Error {
-    constructor(statusErro) {
-      super("Falha da API");
+    constructor(statusErro, mensagem = "Falha da API") {
+      super(mensagem);
       this.status = statusErro;
     }
   }
-
   const redirecionar = (destino) => {
-    throw Object.assign(new Error("Redirect"), { destino });
+    throw Object.assign(new Error(`Redirect: ${destino}`), { destino });
   };
+  const cookiesArmazenados = new Map(token ? [["doai_token", token]] : []);
+
   const cookieStore = {
-    get: () => (token ? { value: token } : undefined),
-    set: (...args) => cookiesEscritos.push(args),
-    delete: (nome) => cookiesExcluidos.push(nome),
+    get: (nome) => {
+      const value = cookiesArmazenados.get(nome);
+
+      return value !== undefined ? { name: nome, value } : undefined;
+    },
+
+    getAll: (nome) => {
+      return Array.from(cookiesArmazenados, ([name, value]) => ({ name, value })).filter((cookie) => {
+        return nome === undefined || cookie.name === nome;
+      });
+    },
+
+    set: (...args) => {
+      const [nome, valor] = args;
+
+      cookiesEscritos.push(args);
+      cookiesArmazenados.set(nome, valor);
+    },
+
+    delete: (nome) => {
+      cookiesExcluidos.push(nome);
+      cookiesArmazenados.delete(nome);
+    }
   };
   const authNative = {
     autenticarComEmail: async (...args) => {
@@ -83,12 +104,45 @@ function ambiente({
   };
   const api = {
     ErroApi,
+
     fetchApi: async (path, opcoes) => {
       chamadas.push({ path, opcoes });
+
       if (transporte) throw transporte;
-      if (path === "perfil" && status !== 200) throw new ErroApi(status);
-      return profile ?? { _id: "pessoa", perfil: "USUARIO", situacao: "ATIVO" };
-    },
+
+      // Cadastro tradicional pelo endpoint de domínio
+      if (path === "usuario" && opcoes?.metodo === "POST") {
+        if (signupResponse?.error) {
+          const erro = signupResponse.error;
+
+          throw new ErroApi(
+            erro.status,
+            erro.message ?? "Falha da API",
+          );
+        }
+
+        return { _id: "pessoa" };
+      }
+
+      // Simula erros na consulta do perfil
+      if (path === "perfil" && status !== 200) {
+        throw new ErroApi(status);
+      }
+
+      // Perfil padrão com cadastro completo
+      return profile ?? {
+        _id: "pessoa",
+        nome: "Maria da Silva",
+        email: "pessoa@example.test",
+        cpf: "52998224725",
+        telefone: "11999999999",
+        cidade: "São Paulo",
+        uf: "SP",
+        perfil: "USUARIO",
+        situacao: "ATIVO",
+        cadastro_completo: true
+      };
+    }
   };
 
   const cache = new Map();
@@ -106,6 +160,7 @@ function ambiente({
         if (nome === "@/lib/auth-cookie") return { COOKIE_TOKEN: "doai_token" };
         if (nome === "@/lib/auth-validation") return validacao;
         if (nome === "@/lib/auth-guest") return carregar("lib/auth-guest.ts");
+        if (nome === "@/lib/auth-server") return carregar("lib/auth-server.ts");
         if (nome === "@/lib/auth-native-client") return authNative;
         if (nome === "react/jsx-runtime") return require(nome);
         if (nome.startsWith("@/components/auth/")) {
@@ -269,7 +324,15 @@ test("cookie revogado permite login Better Auth e mantém a sessão HttpOnly", a
         ),
     (erro) => erro.destino === "/perfil",
   );
-  assert.equal(app.chamadas.length, 0);
+  // O login agora consulta o perfil antes de persistir a sessão
+  assert.equal(app.chamadas.length, 1);
+
+  assert.equal(app.chamadas[0].path, "perfil");
+
+  assert.equal(app.chamadas[0].opcoes.token, "nova-sessao");
+
+  assert.ok(app.chamadas[0].opcoes.signal instanceof AbortSignal);
+
   assert.deepEqual(app.chamadasNativas, [
     {
       metodo: "entrar",
@@ -287,7 +350,7 @@ test("cookie revogado permite login Better Auth e mantém a sessão HttpOnly", a
   });
 });
 
-test("cadastro Better Auth usa dados validados, não abre sessão e exige login explícito", async () => {
+test("cadastro tradicional usa dados validados, não abre sessão e exige login explícito", async () => {
   const app = ambiente({
     token: "revogada",
     sessionResponse: { data: null, error: null },
@@ -308,25 +371,34 @@ test("cadastro Better Auth usa dados validados, não abre sessão e exige login 
       }),
     (erro) => erro.destino === "/login?cadastro=sucesso",
   );
-  assert.equal(app.chamadas.length, 0);
+
+  // Cadastro realizado pelo endpoint de domínio
+  assert.equal(app.chamadas.length, 1);
+
+  const chamada = app.chamadas[0];
+
+  assert.equal(chamada.path, "usuario");
+  assert.equal(chamada.opcoes.metodo, "POST");
+
+  const dados = chamada.opcoes.body;
+
+  // Valida os dados enviados
+  assert.equal(dados.email, "maria@example.test");
+  assert.equal(dados.cpf, "52998224725");
+  assert.equal(dados.telefone, "11999999999");
+  assert.equal(dados.cidade, "São Paulo");
+  assert.equal(dados.uf, "SP");
+
+  // Não permite atribuição indevida de privilégios
+  assert.notEqual(dados.perfil, "ADMINISTRADOR");
+
+  // Cadastro não deve criar uma sessão automaticamente
   assert.equal(app.cookiesEscritos.length, 0);
-  assert.equal(
-    JSON.stringify(app.chamadasNativas[0]),
-    JSON.stringify({
-      metodo: "cadastrar",
-      args: [
-        {
-          name: "Maria da Silva",
-          email: "maria@example.test",
-          password: "Teste123!",
-          cpf: "52998224725",
-          telefone: "11999999999",
-          cidade: "São Paulo",
-          uf: "SP",
-        },
-      ],
-    }),
-  );
+
+  // Não utiliza o cadastro nativo do Better Auth
+  assert.equal(app.chamadasNativas.length, 0);
+
+  assert.ok(chamada.opcoes.signal instanceof AbortSignal);
 });
 
 test("login vazio é conferido pela API e não grava sessão", async () => {
@@ -343,51 +415,117 @@ test("login vazio é conferido pela API e não grava sessão", async () => {
 
 test("cadastro recusado pelo Zod da API mostra a mensagem do campo", async () => {
   for (const [erro, mensagem] of [
-    [{ status: 400, code: "INVALID_CPF", message: "CPF inválido.", issues: [{ field: "cpf", message: "CPF inválido." }] }, "CPF inválido."],
-    [{ status: 400, code: "INVALID_SIGN_UP_DATA", message: "Dados de cadastro inválidos.", issues: [{ field: "name", message: "Nome deve ter no mínimo 3 caracteres." }] }, "Nome deve ter no mínimo 3 caracteres."],
-    [{ status: 400 }, "Não foi possível criar a conta. Verifique os dados e tente novamente."],
+    [
+      {
+        status: 400,
+        message: "CPF inválido."
+      },
+      "CPF inválido."
+    ],
+    [
+      {
+        status: 400,
+        message: "Nome deve ter no mínimo 3 caracteres."
+      },
+      "Nome deve ter no mínimo 3 caracteres."
+    ],
+    [
+      {
+        status: 400,
+        message: "Dados de cadastro inválidos."
+      },
+      "Dados de cadastro inválidos."
+    ]
   ]) {
     const app = ambiente({
       sessionResponse: { data: null, error: null },
       signupResponse: { data: null, error: erro },
     });
-    const resultado = await app.carregar("app/(auth)/actions.ts").cadastrar({
-      nome: "A",
-      email: "maria@example.test",
-      cpf: "123",
-      telefone: "",
-      cidade: "São Paulo",
-      uf: "SP",
-      senha: "Teste123!",
-      confirmarSenha: "Teste123!",
-      termos: true,
-    });
+
+    const resultado = await app
+      .carregar("app/(auth)/actions.ts")
+      .cadastrar({
+        nome: "A",
+        email: "maria@example.test",
+        cpf: "123",
+        telefone: "",
+        cidade: "São Paulo",
+        uf: "SP",
+        senha: "Teste123!",
+        confirmarSenha: "Teste123!",
+        termos: true
+      });
+
     assert.equal(resultado.erro, mensagem);
-    assert.equal(app.chamadasNativas.length, 1);
+
+    // Confirma a utilização do endpoint de cadastro
+    assert.equal(app.chamadas.length, 1);
+    assert.equal(app.chamadas[0].path, "usuario");
+    assert.equal(app.chamadas[0].opcoes.metodo, "POST");
+
+    // Não utiliza o cadastro nativo do Better Auth
+    assert.equal(app.chamadasNativas.length, 0);
+
+    // Cadastro recusado não cria sessão
+    assert.equal(app.cookiesEscritos.length, 0);
   }
 });
 
-test("cadastro recusado por outro motivo mantém mensagem localizada, sem expor a da API", async () => {
-  for (const [status, mensagem] of [
-    [409, "Já existe uma conta com estes dados."],
-    [429, "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente."],
-    [500, "Não foi possível criar a conta. Verifique os dados e tente novamente."],
+test("cadastro apresenta erros de domínio e oculta mensagens de falhas internas", async () => {
+  for (const [status, mensagemApi, mensagemEsperada] of [
+    [
+      409,
+      "Já existe uma conta com estes dados.",
+      "Já existe uma conta com estes dados."
+    ],
+    [
+      429,
+      "Muitas tentativas. Aguarde alguns minutos.",
+      "Muitas tentativas. Aguarde alguns minutos."
+    ],
+    [
+      500,
+      "Internal server error",
+      "Não foi possível criar a conta. Tente novamente."
+    ],
+    [
+      503,
+      "Database connection unavailable",
+      "Não foi possível criar a conta. Tente novamente."
+    ],
   ]) {
     const app = ambiente({
-      signupResponse: { data: null, error: { status, message: "Native server message" } },
+      signupResponse: {
+        data: null,
+        error: {
+          status,
+          message: mensagemApi
+        }
+      }
     });
-    const resultado = await app.carregar("app/(auth)/actions.ts").cadastrar({
-      nome: "Maria da Silva",
-      email: "maria@example.test",
-      cpf: "529.982.247-25",
-      telefone: "",
-      cidade: "São Paulo",
-      uf: "SP",
-      senha: "Teste123!",
-      confirmarSenha: "Teste123!",
-      termos: true,
-    });
-    assert.equal(resultado.erro, mensagem);
+
+    const resultado = await app
+      .carregar("app/(auth)/actions.ts")
+      .cadastrar({
+        nome: "Maria da Silva",
+        email: "maria@example.test",
+        cpf: "529.982.247-25",
+        telefone: "",
+        cidade: "São Paulo",
+        uf: "SP",
+        senha: "Teste123!",
+        confirmarSenha: "Teste123!",
+        termos: true
+      });
+
+    assert.equal(resultado.erro, mensagemEsperada);
+
+    assert.equal(app.chamadas.length, 1);
+    assert.equal(app.chamadas[0].path, "usuario");
+    assert.equal(app.chamadas[0].opcoes.metodo, "POST");
+
+    assert.equal(app.chamadasNativas.length, 0);
+    assert.equal(app.cookiesEscritos.length, 0);
   }
 });
 

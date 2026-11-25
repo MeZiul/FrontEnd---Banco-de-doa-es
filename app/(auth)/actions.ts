@@ -262,14 +262,14 @@ export async function sair(): Promise<ResultadoAuth> {
       const resposta = await encerrarSessaoNativa(token);
 
       if (resposta.error && ![401, 498].includes(resposta.error.status)) {
-        return { erro: "Não foi possível encerrar a sessão. Tente novamente" };
+        return { erro: "Não foi possível encerrar a sessão. Tente novamente." };
       }
     }
   } catch (erro) {
     const status = statusDoErro(erro);
 
     if (status !== 401 && status !== 498) {
-      return { erro: "Não foi possível encerrar a sessão. Tente novamente" };
+      return { erro: "Não foi possível encerrar a sessão. Tente novamente." };
     }
   }
 
