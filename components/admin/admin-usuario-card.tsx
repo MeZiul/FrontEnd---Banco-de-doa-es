@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { suspenderUsuario, reativarUsuario, inativarUsuario } from "@/app/(protected)/admin/usuarios/actions"; // ajuste o caminho
+import { suspenderUsuario, reativarUsuario, inativarUsuario, alterarPerfilUsuario } from "@/app/(protected)/admin/usuarios/actions";
 import type { AdminUsuario, ResultadoAcao } from "@/app/(protected)/admin/usuarios/actions";
 
 interface Props {
@@ -12,7 +12,8 @@ interface Props {
 type Acao =
     | { tipo: "suspender"; justificativa: string; suspensaoAte: string | null }
     | { tipo: "reativar" }
-    | { tipo: "inativar" };
+    | { tipo: "inativar" }
+    | { tipo: "perfil"; perfil: "USUARIO" | "ADMINISTRADOR" };
 
 const statusStyle = {
     ATIVO: "bg-green-100 text-green-600",
@@ -48,6 +49,8 @@ export default function UsuarioCard({ usuario }: Props) {
                 );
             } else if (acao.tipo === "reativar") {
                 resultado = await reativarUsuario(usuario._id);
+            } else if (acao.tipo === "perfil") {
+                resultado = await alterarPerfilUsuario(usuario._id, acao.perfil);
             } else {
                 resultado = await inativarUsuario(usuario._id);
             }
@@ -79,6 +82,17 @@ export default function UsuarioCard({ usuario }: Props) {
         mutate({ tipo });
     }
 
+    const ehAdmin = usuario.perfil === "ADMINISTRADOR";
+
+    function alterarPerfil() {
+        const pergunta = ehAdmin
+            ? `Voltar ${usuario.nome} para usuário comum? A conta perde o acesso ao painel admin.`
+            : `Tornar ${usuario.nome} administrador? A conta terá acesso a todo o painel admin.`;
+        // A API revoga as sessões: a pessoa precisa entrar de novo.
+        if (!window.confirm(`${pergunta}\n\nA pessoa será desconectada e precisará entrar de novo.`)) return;
+        mutate({ tipo: "perfil", perfil: ehAdmin ? "USUARIO" : "ADMINISTRADOR" });
+    }
+
     return (
         <div className="rounded-2xl border bg-white p-4 shadow-sm">
             <div className="flex items-start justify-between">
@@ -87,7 +101,7 @@ export default function UsuarioCard({ usuario }: Props) {
 
                     <p className="text-sm text-gray-500">
                         {usuario.email} · {usuario.cidade} - {usuario.uf} ·{" "}
-                        {usuario.perfil === "USUARIO" ? "Usuário" : usuario.perfil}
+                        {ehAdmin ? "Administrador" : "Usuário"}
                     </p>
                 </div>
 
@@ -174,6 +188,17 @@ export default function UsuarioCard({ usuario }: Props) {
                             className="rounded-xl border px-4 py-2 text-sm disabled:opacity-50"
                         >
                             Inativar
+                        </button>
+                    )}
+
+                    {(ehAdmin || usuario.situacao === "ATIVO") && (
+                        <button
+                            type="button"
+                            disabled={isPending}
+                            onClick={alterarPerfil}
+                            className="rounded-xl border px-4 py-2 text-sm disabled:opacity-50"
+                        >
+                            {ehAdmin ? "Voltar a usuário" : "Tornar administrador"}
                         </button>
                     )}
                 </div>
