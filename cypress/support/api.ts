@@ -17,10 +17,18 @@ export function entrarNaApi(email: string, senha: string): Cypress.Chainable<str
   }).its("body.token", { log: false });
 }
 
-/** Admin do seed local: rode com CYPRESS_ADMIN_EMAIL e CYPRESS_ADMIN_SENHA. */
+/** Admin do seed local: CYPRESS_ADMIN_EMAIL/CYPRESS_ADMIN_SENHA ou ADMIN_EMAIL/ADMIN_SENHA no cypress.env.json. */
 export function tokenAdmin(): Cypress.Chainable<string> {
-  return cy.env<{ ADMIN_EMAIL: string; ADMIN_SENHA: string }>(["ADMIN_EMAIL", "ADMIN_SENHA"], { log: false })
-    .then(({ ADMIN_EMAIL, ADMIN_SENHA }) => entrarNaApi(ADMIN_EMAIL, ADMIN_SENHA));
+  return cy.env<{ ADMIN_EMAIL?: string; ADMIN_SENHA?: string }>(["ADMIN_EMAIL", "ADMIN_SENHA"], { log: false })
+    .then(({ ADMIN_EMAIL, ADMIN_SENHA }) => {
+      if (!ADMIN_EMAIL || !ADMIN_SENHA) {
+        throw new Error(
+          "Credenciais do admin não configuradas. Crie cypress.env.json (veja cypress.env.example.json) "
+          + "ou defina CYPRESS_ADMIN_EMAIL e CYPRESS_ADMIN_SENHA antes de abrir o Cypress.",
+        );
+      }
+      return entrarNaApi(ADMIN_EMAIL, ADMIN_SENHA);
+    });
 }
 
 /** Cria uma conta sintética ativa e já devolve o token dela. */
