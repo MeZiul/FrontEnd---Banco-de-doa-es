@@ -1,17 +1,8 @@
-// ***********************************************************
-// This example support/e2e.ts is processed and
-// loaded automatically before your test files.
-//
-// This is a great place to put global configuration and
-// behavior that modifies Cypress.
-//
-// You can change the location of this file or turn off
-// automatically serving support files with the
-// 'supportFile' configuration option.
-//
-// You can read more here:
-// https://on.cypress.io/configuration
-// ***********************************************************
+import "./commands";
 
-// Import commands.js using ES2015 syntax:
-import './commands'
+// shortcut: no `next dev`, o rastreio de desempenho do React lança este erro quando um layout do servidor
+// redireciona (ex.: AdminLayout mandando quem não é admin para "/"). Só acontece em modo de desenvolvimento;
+// ignorar apenas esta mensagem. Remover se os testes passarem a rodar contra `next build && next start`.
+Cypress.on("uncaught:exception", (erro) => {
+  if (/cannot have a negative time stamp/.test(erro.message)) return false;
+});

@@ -1,4 +1,4 @@
-import { criarContaSintetica } from "../support/conta-sintetica";
+import { criarContaSintetica } from "../../support/conta-sintetica";
 
 describe("Cadastro", () => {
   beforeEach(() => {
