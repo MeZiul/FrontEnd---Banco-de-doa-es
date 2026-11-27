@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect, unstable_rethrow } from "next/navigation";
-import { Clock, CheckCircle2, XCircle, Ban, User, Calendar, MapPin, Eye } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, Ban, User, Calendar, MapPin } from "lucide-react";
 import { fetchApiAutenticado, getUsuarioLogado } from "@/lib/auth-server";
 import { ConfirmarRecebimentoForm } from "@/components/perfil/confirmar-recebimento-form";
 import { FeedRetry } from "@/components/feed/feed-retry";
@@ -153,18 +153,12 @@ export default async function MinhasSolicitacoes({ searchParams }: { searchParam
                       {StatusData.label}
                     </span>
 
-                    {/* Ações da solicitação */}
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Link
-                        href={`/doacoes/${solicitacao.item_id._id}`}
-                        className="inline-flex items-center gap-2 rounded-lg border border-blue-700 px-4 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
-                      >
-                        <Eye className="h-4 w-4" />Ver detalhes da doação</Link>
-
-                      {solicitacao.status === "PENDENTE" && (
-                        <CancelarSolicitacaoForm interesseId={solicitacao._id} />
-                      )}
-                    </div>
+                    {/* Cancelamento de solicitação pendente */}
+                    {solicitacao.status === "PENDENTE" && (
+                      <CancelarSolicitacaoForm
+                        interesseId={solicitacao._id}
+                      />
+                    )}
 
                     {solicitacao.status === "ACEITO" && solicitacao.item_id.status === "AGUARDANDO_CONFIRMACAO" && (
                       <div className="w-full space-y-2 rounded-xl bg-amber-50 p-4 text-sm text-amber-950">
@@ -177,6 +171,15 @@ export default async function MinhasSolicitacoes({ searchParams }: { searchParam
                       <p role="status" className="text-sm font-medium text-emerald-700">
                         Recebimento confirmado. Esta doação foi concluída.
                       </p>
+                    )}
+
+                    {solicitacao.status === "ACEITO" && !["AGUARDANDO_CONFIRMACAO", "DOADO"].includes(solicitacao.item_id.status) && (
+                      <Link
+                        href={`/doacoes/${solicitacao.item_id._id}`}
+                        className="inline-flex items-center rounded-lg border border-blue-700 px-4 py-2 text-sm font-medium text-blue-700 underline-offset-4 hover:bg-blue-50 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+                      >
+                        Ver detalhes da doação
+                      </Link>
                     )}
                   </div>
                 </div>
