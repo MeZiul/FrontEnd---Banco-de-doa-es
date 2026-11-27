@@ -3,37 +3,14 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import type { CategoriaFeed } from "@/types/feed"
-import {
-  Apple,
-  Armchair,
-  BookOpen,
-  Compass,
-  MapPin,
-  Package,
-  Plus,
-  Refrigerator,
-  Search,
-  Shirt,
-  Sparkles,
-  ToyBrick,
-  UserRound,
-} from "lucide-react"
-
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  useSidebar,
-} from "@/components/ui/sidebar"
+import { Apple, Armchair, BookOpen, Compass, MapPin, Package, Plus, Refrigerator, Search, Shirt, Sparkles, ToyBrick, UserRound, Monitor, CookingPot, Footprints } from "lucide-react"
+import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, useSidebar } from "@/components/ui/sidebar"
 import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
 
 const nav = [
   { href: "/busca", label: "Explorar tudo", icon: Compass },
-  { href: "/perfil", label: "Sua conta", icon: UserRound },
+  { href: "/perfil", label: "Sua conta", icon: UserRound }
 ]
 
 const defaultCategories = [
@@ -44,7 +21,7 @@ const defaultCategories = [
   "Livros e Estudos",
   "Brinquedos",
   "Higiene",
-  "Outros",
+  "Outros"
 ]
 
 function iconForCategory(name: string) {
@@ -53,10 +30,14 @@ function iconForCategory(name: string) {
   if (normalized.includes("roup")) return Shirt
   if (normalized.includes("move")) return Armchair
   if (normalized.includes("eletrodom")) return Refrigerator
-  if (normalized.includes("livr") || normalized.includes("estud")) return BookOpen
+  if (normalized.includes("livr") || normalized.includes("estud") || normalized.includes("educa")) return BookOpen
   if (normalized.includes("brinqued")) return ToyBrick
-  if (normalized.includes("higiene")) return Sparkles
-  return Package
+  if (normalized.includes("higiene") || normalized.includes("beleza")) return Sparkles
+  if (normalized.includes("utensil")) return CookingPot
+  if (normalized.includes("calcad")) return Footprints
+  if (normalized.includes("eletron")) return Monitor
+
+  return Package;
 }
 
 function categoryHref(id: string) {
@@ -80,12 +61,10 @@ export function AppSidebar({ categorias, className, locationIllustrative = false
     : categorias
 
   return (
-    <Sidebar
-      variant="floating"
-      collapsible="offcanvas"
-      className={cn("border-none", className)}
+    <Sidebar variant="sidebar" collapsible="offcanvas"
+      className={cn("**:data-[slot=sidebar-inner]:bg-white", className)}
     >
-      <SidebarHeader className="gap-6 px-4 pt-4">
+      <SidebarHeader className="shrink-0 gap-4 border-b border-slate-100 px-4 py-5">
         {/* Busca */}
         <form action="/busca" method="get" role="search" aria-label="Buscar doações" className="relative">
           <label htmlFor="busca-lateral" className="sr-only">Buscar doações</label>
@@ -113,9 +92,12 @@ export function AppSidebar({ categorias, className, locationIllustrative = false
                 href={href}
                 onClick={closeMobile}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors hover:bg-accent",
-                  isActive && "bg-primary/10 text-primary hover:bg-primary/10"
+                  "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-blue-50 font-semibold text-blue-700"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 )}
+                aria-current={isActive ? "page" : undefined}
               >
                 <Icon className="size-4 shrink-0" />
                 {label}
@@ -131,7 +113,7 @@ export function AppSidebar({ categorias, className, locationIllustrative = false
         </Link>
       </SidebarHeader>
 
-      <SidebarContent className="gap-6 px-4 pb-4">
+      <SidebarContent className="gap-4 px-4 py-4">
         {/* Localização */}
         <SidebarGroup className="space-y-3 p-0">
           <SidebarGroupLabel className="px-0 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -172,10 +154,10 @@ export function AppSidebar({ categorias, className, locationIllustrative = false
                     <Link
                       href={categoria._id ? categoryHref(categoria._id) : usesDefaultCategories ? "/" : "/busca"}
                       onClick={closeMobile}
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors hover:bg-accent"
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
                     >
                       <Icon aria-hidden="true" className="size-4 shrink-0" />
-                      <span className="min-w-0 truncate">{categoria.nome}</span>
+                      <span className="min-w-0 wrap-break-word leading-snug">{categoria.nome}</span>
                     </Link>
                   </li>
                 )

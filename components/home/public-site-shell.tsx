@@ -19,7 +19,10 @@ export function PublicSiteShell({ children, exploreSidebar = false, categorias =
         Ir para o conteúdo principal
       </a>
       <header className={exploreSidebar ? "sticky top-0 z-40 min-h-20 border-b border-slate-200 bg-white" : "border-b border-slate-200 bg-white"}>
-        <nav aria-label="Navegação principal" className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4">
+        <nav aria-label="Navegação principal"
+          className={`mx-auto flex w-full flex-wrap items-center justify-between gap-4 px-5 py-4 
+          ${exploreSidebar ? "max-w-none" : "max-w-7xl"}`}
+        >
           <div className="flex min-w-0 items-center gap-3">
             {exploreSidebar && <SidebarTrigger aria-label="Abrir ou fechar menu de exploração" title="Abrir ou fechar menu de exploração" />}
             <Link href="/" className="flex items-center gap-2 text-2xl font-bold text-blue-800">
@@ -37,13 +40,13 @@ export function PublicSiteShell({ children, exploreSidebar = false, categorias =
         </nav>
       </header>
       {exploreSidebar ? (
-        <div className="mx-auto flex w-full max-w-7xl flex-1">
+        <div className="flex w-full flex-1">
           <AppSidebar
             categorias={categorias}
             locationIllustrative
-            className="md:sticky! md:top-20! md:bottom-auto! md:left-auto! md:right-auto! md:h-[calc(100svh-5rem)]! md:self-start! group-data-[collapsible=offcanvas]:hidden!"
+            className="md:top-20 md:bottom-0 md:h-[calc(100dvh-5rem)] md:z-30"
           />
-          <main id="conteudo" className="min-w-0 w-full flex-1 px-5 py-8 sm:py-10">
+          <main id="conteudo" className="min-w-0 flex-1 px-4 py-6 md:px-8 md:py-8">
             {children}
           </main>
         </div>
