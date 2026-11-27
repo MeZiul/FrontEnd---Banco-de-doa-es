@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
 import { ErroApi } from "@/lib/api";
 import { fetchApiAutenticado, getUsuarioLogado } from "@/lib/auth-server";
-import { campoDoacao, ID_DOACAO } from "@/lib/doacao-validation";
+import { campoDoacao, ID_DOACAO, ErroDoacao, validarLocalizacaoDoacao } from "@/lib/doacao-validation";
 import type { InteresseAnuncio, MeuAnuncio, ResultadoAnuncio } from "@/types/item-doacao";
 
 type InteresseDetalhado = Omit<InteresseAnuncio, "item_id"> & {
@@ -35,7 +35,15 @@ async function proprioAnuncio(id: string) {
 
 function falha(erro: unknown): ResultadoAnuncio {
   unstable_rethrow(erro);
-  return { sucesso: false, mensagem: erro instanceof ErroApi || erro instanceof ErroFormulario ? erro.message : "Não foi possível completar a ação. Tente novamente." };
+  return {
+    sucesso: false,
+    mensagem:
+      erro instanceof ErroApi ||
+        erro instanceof ErroFormulario ||
+        erro instanceof ErroDoacao
+        ? erro.message
+        : "Não foi possível completar a ação. Tente novamente.",
+  };
 }
 
 export async function carregarInteressados(id: string): Promise<{ interesses: InteresseAnuncio[]; mensagem?: string }> {
@@ -136,11 +144,19 @@ export async function alterarAnuncio(_anterior: ResultadoAnuncio, dados: FormDat
     const { item } = await proprioAnuncio(id);
     if (acao === "editar") {
       if (item.status !== "DISPONIVEL") throw new ErroFormulario("Somente anúncios disponíveis podem ser editados.");
+
+      const localizacao = validarLocalizacaoDoacao(dados);
+
       await fetchApiAutenticado(`itemdoacao/${id}`, {
-        metodo: "PUT", body: {
-          titulo: campoDoacao(dados, "titulo"), descricao: campoDoacao(dados, "descricao"),
-          condicao_item: campoDoacao(dados, "condicao_item"), cidade: campoDoacao(dados, "cidade"), uf: campoDoacao(dados, "uf").toUpperCase(),
-          bairro: campoDoacao(dados, "bairro"), condicoes_doacao: campoDoacao(dados, "condicoes_doacao"),
+        metodo: "PUT",
+        body: {
+          titulo: campoDoacao(dados, "titulo"),
+          descricao: campoDoacao(dados, "descricao"),
+          condicao_item: campoDoacao(dados, "condicao_item"),
+          cidade: localizacao.cidade,
+          uf: localizacao.uf,
+          bairro: campoDoacao(dados, "bairro"),
+          condicoes_doacao: campoDoacao(dados, "condicoes_doacao")
         }
       });
     } else if (acao === "entregar") {

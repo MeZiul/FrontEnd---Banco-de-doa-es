@@ -1,6 +1,13 @@
 export const ID_DOACAO = /^(?:[a-f\d]{24}|[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12})$/i;
 export const MAX_FOTO = 4 * 1024 * 1024;
-export class ErroDoacao extends Error {}
+export class ErroDoacao extends Error { }
+
+const UFS_VALIDAS = new Set([
+  "AC", "AL", "AP", "AM", "BA", "CE", "DF",
+  "ES", "GO", "MA", "MT", "MS", "MG", "PA",
+  "PB", "PR", "PE", "PI", "RJ", "RN", "RS",
+  "RO", "RR", "SC", "SP", "SE", "TO"
+]);
 
 export function campoDoacao(dados: FormData, campo: string, minimo?: number, maximo?: number): string {
   const valor = dados.get(campo);
@@ -16,6 +23,18 @@ export function campoDoacao(dados: FormData, campo: string, minimo?: number, max
 
   return texto;
 }
+
+export function validarLocalizacaoDoacao(dados: FormData) {
+  const uf = campoDoacao(dados, "uf").toUpperCase();
+  const cidade = campoDoacao(dados, "cidade");
+
+  if (!UFS_VALIDAS.has(uf)) throw new ErroDoacao("Selecione uma UF válida.");
+  if (!cidade) throw new ErroDoacao("Selecione uma cidade.");
+  if (cidade.length > 100) throw new ErroDoacao("A cidade deve ter no máximo 100 caracteres.");
+
+  return { uf, cidade };
+}
+
 export function lerNovaDoacao(dados: FormData) {
   return {
     titulo: campoDoacao(dados, "titulo"), descricao: campoDoacao(dados, "descricao"),

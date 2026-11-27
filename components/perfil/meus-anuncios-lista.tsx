@@ -2,11 +2,14 @@
 
 import { useActionState, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Package, Users } from "lucide-react";
+import { Package, Users, ListFilter } from "lucide-react";
 import { PaginacaoLinks } from "@/components/shared/paginacao-links";
 import { alterarAnuncio, carregarInteressados } from "@/app/(protected)/perfil/meus-anuncios/actions";
 import type { InteresseAnuncio, MeuAnuncio, StatusItem } from "@/types/item-doacao";
 import { ContatoWhatsApp } from "@/components/perfil/contato-whatsapp";
+import { UfSelect } from "@/components/shared/uf-select";
+import { CidadeSelect } from "@/components/shared/cidade-select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const statusInfo: Record<StatusItem, { nome: string; classe: string }> = {
   DISPONIVEL: { nome: "Disponível", classe: "bg-blue-50 text-blue-700" },
@@ -14,6 +17,14 @@ const statusInfo: Record<StatusItem, { nome: string; classe: string }> = {
   AGUARDANDO_CONFIRMACAO: { nome: "Aguardando confirmação", classe: "bg-yellow-100 text-yellow-800" },
   DOADO: { nome: "Doado", classe: "bg-gray-100 text-gray-700" },
   CANCELADO: { nome: "Cancelado", classe: "bg-red-50 text-red-700" },
+};
+const statusCores: Record<StatusItem | "TODOS", string> = {
+  TODOS: "bg-slate-400",
+  DISPONIVEL: "bg-blue-500",
+  RESERVADO: "bg-emerald-500",
+  AGUARDANDO_CONFIRMACAO: "bg-yellow-500",
+  DOADO: "bg-gray-500",
+  CANCELADO: "bg-red-500"
 };
 const botao = "rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-wait disabled:opacity-50";
 const campo = "mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm";
@@ -42,6 +53,7 @@ function FotoAnuncio({ item }: { item: MeuAnuncio }) {
 
 function CardAnuncio({ item, ativo }: { item: MeuAnuncio; ativo: boolean }) {
   const [modo, setModo] = useState<"editar" | "entregar" | "cancelar" | null>(null);
+  const [localizacao, setLocalizacao] = useState({ uf: item.uf, cidade: item.cidade });
   const [interesses, setInteresses] = useState<InteresseAnuncio[] | null>(null);
   const [verInteresses, setVerInteresses] = useState(false);
   const [erroInteresses, setErroInteresses] = useState("");
@@ -59,6 +71,30 @@ function CardAnuncio({ item, ativo }: { item: MeuAnuncio; ativo: boolean }) {
     return resposta;
   }, { sucesso: false, mensagem: "" });
   const info = statusInfo[item.status];
+
+  function iniciarEdicao() {
+    setLocalizacao({
+      uf: item.uf,
+      cidade: item.cidade
+    });
+
+    setModo("editar");
+  }
+
+  function mudarUf(uf: string) {
+    setLocalizacao((atual) => ({
+      ...atual,
+      uf,
+      cidade: atual.uf === uf ? atual.cidade : ""
+    }));
+  }
+
+  function mudarCidade(cidade: string) {
+    setLocalizacao((atual) => ({
+      ...atual,
+      cidade
+    }));
+  }
 
   function consultarInteresses() {
     setVerInteresses(true);
@@ -78,7 +114,7 @@ function CardAnuncio({ item, ativo }: { item: MeuAnuncio; ativo: boolean }) {
       <p className="flex items-center gap-2 text-sm text-slate-500"><Users className="h-4 w-4" aria-hidden="true" />{item.total_interesses} manifestação(ões) de interesse no total</p>
       <div className="flex flex-wrap gap-2">
         {ativo && <button className={botao} disabled={pendente || carregando} onClick={() => verInteresses ? setVerInteresses(false) : consultarInteresses()} aria-expanded={verInteresses} aria-controls={`interesses-${item._id}`}>{verInteresses ? "Ocultar interessados" : "Ver interessados"}</button>}
-        {item.status === "DISPONIVEL" && <button className={botao} disabled={pendente} onClick={() => setModo("editar")}>Editar anúncio</button>}
+        {item.status === "DISPONIVEL" && (<button className={botao} disabled={pendente} onClick={iniciarEdicao}>Editar anúncio</button>)}
         {item.status === "RESERVADO" && <button className={botao} disabled={pendente} onClick={() => setModo("entregar")}>Confirmar entrega</button>}
         {!["DOADO", "CANCELADO"].includes(item.status) && <button className={`${botao} text-red-700`} disabled={pendente} onClick={() => setModo("cancelar")}>Cancelar doação</button>}
       </div>
@@ -94,8 +130,16 @@ function CardAnuncio({ item, ativo }: { item: MeuAnuncio; ativo: boolean }) {
             <label className="block text-sm">Título<input name="titulo" defaultValue={item.titulo} required minLength={3} maxLength={100} className={campo} /></label>
             <label className="block text-sm">Descrição<textarea name="descricao" defaultValue={item.descricao} required minLength={10} maxLength={2000} rows={4} className={campo} /></label>
             <label className="block text-sm">Condição<select name="condicao_item" defaultValue={item.condicao_item} className={campo}><option value="NOVO">Novo</option><option value="SEMINOVO">Seminovo</option><option value="USADO_BOM">Usado em bom estado</option><option value="USADO_REGULAR">Usado em estado regular</option></select></label>
-            <label className="block text-sm">Cidade<input name="cidade" defaultValue={item.cidade} required maxLength={100} className={campo} /></label>
-            <label className="block text-sm">UF<input name="uf" defaultValue={item.uf} required minLength={2} maxLength={2} pattern="[A-Za-z]{2}" className={campo} /></label>
+            <div className="space-y-1">
+              <label htmlFor={`anuncio-uf-${item._id}`} className="block text-sm">Estado (UF)</label>
+              <UfSelect id={`anuncio-uf-${item._id}`} value={localizacao.uf} onValueChange={mudarUf} placeholder="Selecione a UF" dataTest="editarAnuncioUf" />
+              <input type="hidden" name="uf" value={localizacao.uf} />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor={`anuncio-cidade-${item._id}`} className="block text-sm">Cidade</label>
+              <CidadeSelect id={`anuncio-cidade-${item._id}`} uf={localizacao.uf} value={localizacao.cidade} onValueChange={mudarCidade} dataTest="editarAnuncioCidade" />
+              <input type="hidden" name="cidade" value={localizacao.cidade} />
+            </div>
             <label className="block text-sm">Bairro<input name="bairro" defaultValue={item.bairro ?? ""} maxLength={100} className={campo} /></label>
             <label className="block text-sm">Condições da doação<textarea name="condicoes_doacao" defaultValue={item.condicoes_doacao ?? ""} maxLength={500} className={campo} /></label>
           </>}
@@ -158,7 +202,44 @@ export function MeusAnunciosLista({ anuncios, ativo, pagina, status }: {
 
   if (!anuncios.length) return <p className="rounded-2xl border border-gray-100 bg-white p-6 text-slate-500">Você ainda não publicou nenhum anúncio.</p>;
   return <>
-    <label className="mb-6 block text-sm font-medium">Filtrar por status<select value={filtro} onChange={(evento) => mudarFiltro(evento.target.value)} className={`${campo} max-w-xs`}><option value="TODOS">Todos</option>{Object.entries(statusInfo).map(([valor, info]) => <option key={valor} value={valor}>{info.nome}</option>)}</select></label>
+    <div className="mb-6 w-full max-w-xs space-y-2">
+      <label htmlFor="filtro-status" className="flex items-center gap-2 text-sm font-medium text-slate-600">
+        <ListFilter className="size-4" aria-hidden="true" />
+        Filtrar por status
+      </label>
+
+      <Select value={filtro} onValueChange={(valor) => { if (valor !== null) mudarFiltro(valor); }}>
+        <SelectTrigger id="filtro-status" data-test="filtroStatusAnuncios"
+          className="h-10 w-full rounded-xl border-slate-200 bg-white shadow-sm"
+        >
+          <div className="flex items-center gap-2">
+            <span className={`size-2.5 shrink-0 rounded-full ${statusCores[filtro]}`} />
+
+            <SelectValue>
+              {filtro === "TODOS" ? "Todos os status" : statusInfo[filtro].nome}
+            </SelectValue>
+          </div>
+        </SelectTrigger>
+
+        <SelectContent>
+          <SelectItem value="TODOS">
+            <div className="flex items-center gap-2">
+              <span className="size-2.5 rounded-full bg-slate-400" />
+              Todos os status
+            </div>
+          </SelectItem>
+
+          {Object.entries(statusInfo).map(([valor, info]) => (
+            <SelectItem key={valor} value={valor}>
+              <div className="flex items-center gap-2">
+                <span className={`size-2.5 rounded-full ${statusCores[valor as StatusItem]}`} />
+                {info.nome}
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
     {!visiveis.length && <p role="status" className="rounded-2xl border bg-white p-6 text-slate-500">Nenhum anúncio neste status.</p>}
     <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2 xl:grid-cols-3">{visiveis.map((item) => <CardAnuncio key={item._id} item={item} ativo={ativo} />)}</div>
     {filtrados.length > 0 && (

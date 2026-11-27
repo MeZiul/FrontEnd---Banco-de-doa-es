@@ -11,11 +11,20 @@ const compilado = ts.transpileModule(fonte, { compilerOptions: { module: ts.Modu
 const usuarioId = "10000000-0000-0000-0000-000000000001";
 const itemId = "20000000-0000-0000-0000-000000000001";
 const interesseId = "30000000-0000-0000-0000-000000000001";
+const camposEdicao = {
+  titulo: "Mesa de estudos",
+  descricao: "Mesa de madeira em bom estado",
+  condicao_item: "USADO_BOM",
+  cidade: "Vilhena",
+  uf: "RO",
+  bairro: "Centro",
+  condicoes_doacao: "Retirada no local"
+};
 
 function ambiente({ status = "DISPONIVEL", dono = usuarioId, interesses = [], falha = null } = {}) {
   const chamadas = [];
   const revalidacoes = [];
-  class ErroApi extends Error {}
+  class ErroApi extends Error { }
   const contexto = {
     exports: {},
     require(nome) {
@@ -131,4 +140,108 @@ test("preserva redirecionamento de autenticação e oculta erros internos", asyn
   const resultado = await interno.executar("cancelar", { motivo: "Motivo válido de cancelamento" });
   assert.equal(resultado.sucesso, false);
   assert.equal(resultado.mensagem.includes("sigiloso"), false);
+});
+
+test("edição envia localização válida e revalida a página", async () => {
+  const app = ambiente();
+
+  const resultado = await app.executar("editar", camposEdicao);
+
+  assert.equal(resultado.sucesso, true);
+
+  const chamada = app.chamadas.at(-1);
+
+  assert.equal(chamada.path, `itemdoacao/${itemId}`);
+  assert.equal(chamada.opcoes.metodo, "PUT");
+  assert.equal(chamada.opcoes.body.uf, "RO");
+  assert.equal(chamada.opcoes.body.cidade, "Vilhena");
+
+  assert.deepEqual(app.revalidacoes, ["/perfil/meus-anuncios"]);
+});
+
+test("edição normaliza UF e remove espaços da cidade", async () => {
+  const app = ambiente();
+
+  const resultado = await app.executar("editar", {
+    ...camposEdicao,
+    uf: " mt ",
+    cidade: " Cuiabá "
+  });
+
+  assert.equal(resultado.sucesso, true);
+
+  const chamada = app.chamadas.at(-1);
+
+  assert.equal(chamada.opcoes.body.uf, "MT");
+  assert.equal(chamada.opcoes.body.cidade, "Cuiabá");
+});
+
+test("edição rejeita UF inválida sem atualizar o anúncio", async () => {
+  const app = ambiente();
+
+  const resultado = await app.executar("editar", { ...camposEdicao, uf: "XX" });
+
+  assert.equal(resultado.sucesso, false);
+  assert.equal(resultado.mensagem, "Selecione uma UF válida.");
+
+  assert.equal(app.chamadas.filter(({ opcoes }) => opcoes?.metodo).length, 0);
+
+  assert.equal(app.revalidacoes.length, 0);
+});
+
+test("edição rejeita UF vazia sem atualizar o anúncio", async () => {
+  const app = ambiente();
+
+  const resultado = await app.executar("editar", { ...camposEdicao, uf: "" });
+
+  assert.equal(resultado.sucesso, false);
+  assert.equal(resultado.mensagem, "Selecione uma UF válida.");
+
+  assert.equal(app.chamadas.filter(({ opcoes }) => opcoes?.metodo).length, 0);
+
+  assert.equal(app.revalidacoes.length, 0);
+});
+
+test("edição rejeita cidade vazia ou contendo apenas espaços", async () => {
+  for (const cidade of ["", "   "]) {
+    const app = ambiente();
+
+    const resultado = await app.executar("editar", { ...camposEdicao, cidade });
+
+    assert.equal(resultado.sucesso, false);
+    assert.equal(resultado.mensagem, "Selecione uma cidade.");
+
+    assert.equal(app.chamadas.filter(({ opcoes }) => opcoes?.metodo).length, 0);
+
+    assert.equal(app.revalidacoes.length, 0);
+  }
+});
+
+test("edição rejeita cidade acima do limite de caracteres", async () => {
+  const app = ambiente();
+
+  const resultado = await app.executar("editar", { ...camposEdicao, cidade: "A".repeat(101) });
+
+  assert.equal(resultado.sucesso, false);
+
+  assert.equal(resultado.mensagem, "A cidade deve ter no máximo 100 caracteres.");
+
+  assert.equal(app.chamadas.filter(({ opcoes }) => opcoes?.metodo).length, 0);
+
+  assert.equal(app.revalidacoes.length, 0);
+});
+
+test("edição permite alterar a UF e a cidade do anúncio", async () => {
+  const app = ambiente();
+
+  const resultado = await app.executar("editar", { ...camposEdicao, uf: "SP", cidade: "Campinas" });
+
+  assert.equal(resultado.sucesso, true);
+
+  const chamada = app.chamadas.at(-1);
+
+  assert.equal(chamada.path, `itemdoacao/${itemId}`);
+  assert.equal(chamada.opcoes.metodo, "PUT");
+  assert.equal(chamada.opcoes.body.uf, "SP");
+  assert.equal(chamada.opcoes.body.cidade, "Campinas");
 });
