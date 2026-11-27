@@ -11,7 +11,7 @@ const itemId = "20000000-0000-0000-0000-000000000001";
 const interesseId = "30000000-0000-0000-0000-000000000001";
 const vazio = { sucesso: false, mensagem: "" };
 
-class ErroApi extends Error {}
+class ErroApi extends Error { }
 
 function form(campos = {}) {
   const dados = new FormData();
@@ -77,7 +77,11 @@ function ambiente({
     if (typeof action !== "function") return undefined;
     return action(vazio, form(campos));
   };
-  return { executar, chamadas, revalidacoes };
+  const executarCancelamento = (id = interesseId) => {
+    return contexto.exports.cancelarSolicitacao(id);
+  };
+
+  return { executar, executarCancelamento, chamadas, revalidacoes };
 }
 
 test("confirma recebimento apenas para participante aceito com item aguardando, e revalida as telas afetadas", async () => {
@@ -155,4 +159,79 @@ test("mostra sucesso idempotente se o recebimento já foi confirmado por esta so
   assert.equal(resultado.mensagem, "O recebimento já consta como confirmado.");
   assert.equal(app.chamadas.filter((chamada) => chamada.opcoes?.metodo).length, 0);
   assert.deepEqual(app.revalidacoes, ["/perfil/minhas-solicitacoes", "/perfil/meus-anuncios", `/doacoes/${itemId}`]);
+});
+
+test("cancela solicitação com DELETE e revalida as telas afetadas", async () => {
+  const app = ambiente({ interesseStatus: "PENDENTE" });
+
+  const resultado = await app.executarCancelamento();
+
+  assert.equal(resultado.sucesso, true);
+  assert.equal(resultado.mensagem, "Solicitação cancelada com sucesso.");
+
+  assert.equal(app.chamadas.length, 1);
+  assert.equal(app.chamadas[0].path, `interesses/${interesseId}`);
+  assert.equal(app.chamadas[0].opcoes.metodo, "DELETE");
+
+  assert.deepEqual(app.revalidacoes, ["/perfil/minhas-solicitacoes", "/perfil/meus-anuncios"]);
+});
+
+test("cancelamento rejeita identificador inválido sem consultar a API", async () => {
+  const app = ambiente();
+
+  const resultado = await app.executarCancelamento("../admin");
+
+  assert.equal(resultado.sucesso, false);
+  assert.equal(resultado.mensagem, "Solicitação inválida.");
+  assert.equal(app.chamadas.length, 0);
+  assert.deepEqual(app.revalidacoes, []);
+});
+
+test("cancelamento preserva a mensagem de erro da API", async () => {
+  const mensagem = "Esta solicitação não pode ser cancelada.";
+
+  const app = ambiente({ falha: new ErroApi(mensagem) });
+
+  const resultado = await app.executarCancelamento();
+
+  assert.equal(resultado.sucesso, false);
+  assert.equal(resultado.mensagem, mensagem);
+  assert.deepEqual(app.revalidacoes, []);
+});
+
+test("cancelamento não expõe detalhes de falhas internas", async () => {
+  const app = ambiente({ falha: new Error("segredo interno") });
+
+  const resultado = await app.executarCancelamento();
+
+  assert.equal(resultado.sucesso, false);
+  assert.equal(resultado.mensagem, "Não foi possível cancelar a solicitação. Tente novamente.");
+
+  assert.equal(resultado.mensagem.includes("segredo interno"), false);
+
+  assert.deepEqual(app.revalidacoes, []);
+});
+
+test("cancelamento orienta a verificar o estado após timeout", async () => {
+  const timeout = Object.assign(new Error("timeout interno"), { name: "TimeoutError" });
+
+  const app = ambiente({ falha: timeout });
+
+  const resultado = await app.executarCancelamento();
+
+  assert.equal(resultado.sucesso, false);
+  assert.equal(resultado.mensagem, "Não foi possível confirmar o cancelamento. Atualize a página antes de tentar novamente.");
+
+  assert.equal(app.chamadas.length, 1);
+  assert.deepEqual(app.revalidacoes, []);
+});
+
+test("cancelamento preserva redirecionamento de sessão expirada", async () => {
+  const redirecionar = { redirecionar: true };
+
+  const app = ambiente({ falha: redirecionar });
+
+  await assert.rejects(() => app.executarCancelamento(), (erro) => erro === redirecionar);
+
+  assert.deepEqual(app.revalidacoes, []);
 });
