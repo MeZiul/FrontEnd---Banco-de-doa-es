@@ -1,3 +1,5 @@
+import { ItemFeed } from "./feed";
+
 export type StatusSolicitacao = "PENDENTE" | "ACEITO" | "RECUSADO" | "CANCELADO" | "EXPIRADO";
 
 type UsuarioResumo = {
@@ -19,6 +21,7 @@ export type Solicitacao = {
     cidade: string;
     uf: string;
     total_interesses: number;
+    fotos?: ItemFeed["fotos"];
   };
   usuario_interessado_id: UsuarioResumo;
   usuario_doador_id: UsuarioResumo;

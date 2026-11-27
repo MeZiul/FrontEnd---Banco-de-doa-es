@@ -104,8 +104,10 @@ function carregar({ usuario = { _id: usuarioId, perfil: 'USUARIO', situacao: 'AT
       if (nome === '@/components/shared/paginacao-links') return { PaginacaoLinks };
       if (nome === '@/components/perfil/confirmar-recebimento-form') return { ConfirmarRecebimentoForm: function ConfirmarRecebimentoForm() { } };
       if (nome === '@/components/feed/feed-retry') return { FeedRetry: function FeedRetry() { } };
-      if (nome === '@/components/perfil/contato-whatsapp') return { ContatoWhatsapp: () => null }
-      if (nome === '@/components/perfil/cancelar-solicitacao-form') return { CancelarSolicitacaoForm: function CancelarSolicitacaoForm() { } }
+      if (nome === '@/components/perfil/contato-whatsapp') return { ContatoWhatsapp: () => null };
+      if (nome === '@/components/perfil/cancelar-solicitacao-form') return { CancelarSolicitacaoForm: function CancelarSolicitacaoForm() { } };
+      if (nome === '@/lib/feed') return { fotoFeed: () => null };
+      if (nome === '@/components/feed/feed-photo') return { FeedPhoto: () => null };
       throw new Error('Import inesperado: ' + nome);
     },
   };

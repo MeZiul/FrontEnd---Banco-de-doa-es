@@ -7,13 +7,11 @@ import { fotoFeed } from "@/lib/feed";
 import { FeedPhoto } from "@/components/feed/feed-photo";
 import { FeedRetry } from "@/components/feed/feed-retry";
 import { InteresseForm } from "@/components/doacoes/interesse-form";
-import {
-  AvaliacaoDoacaoForm,
-  CompartilharDoacao,
-  DenunciaForm,
-} from "@/components/doacoes/acoes-detalhes";
+import { AvaliacaoDoacaoForm, CompartilharDoacao, DenunciaForm } from "@/components/doacoes/acoes-detalhes";
 import { CONDICOES, type ItemFeed } from "@/types/feed";
 import type { StatusItem } from "@/types/item-doacao";
+import { Home } from "lucide-react";
+import { BotaoVoltar } from "@/components/shared/botao-voltar";
 
 type Detalhe = ItemFeed & {
   descricao: string;
@@ -54,14 +52,14 @@ export default async function DetalhesDoacao({
   } catch (erro) {
     if (erro instanceof ErroApi && erro.status === 404) notFound();
     return (
-      <main className="mx-auto max-w-3xl space-y-4 px-5 py-8">
+      <div className="mx-auto w-full max-w-3xl space-y-4">
         <h1 className="text-2xl font-bold">Detalhes da doação</h1>
         <p role="alert">Não foi possível carregar este anúncio.</p>
         <FeedRetry />
         <Link href="/" className="block text-blue-700 underline">
           Voltar às doações
         </Link>
-      </main>
+      </div>
     );
   }
   const token = await getToken();
@@ -106,20 +104,25 @@ export default async function DetalhesDoacao({
     }
   }
   return (
-    <main className="mx-auto max-w-5xl space-y-6 px-5 py-8">
-      <nav
-        aria-label="Navegação da doação"
-        className="flex flex-wrap gap-4 text-sm font-semibold text-blue-700"
-      >
-        <Link href="/" className="underline">
-          Doações disponíveis
+    <div className="w-full space-y-4">
+      <nav aria-label="Navegação da doação" className="flex flex-wrap items-center gap-3">
+        <BotaoVoltar />
+
+        <Link href="/"
+          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+        >
+          <Home className="h-4 w-4" aria-hidden="true" />
+          Início
         </Link>
-        <Link href="/doacoes/nova" className="underline">
+
+        <Link href="/doacoes/nova"
+          className="ml-auto inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+        >
           Anunciar doação
         </Link>
       </nav>
-      <article className="overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-sm">
-        <div className="grid gap-1 sm:grid-cols-2">
+      <article className="grid overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-sm lg:grid-cols-2">
+        <div className="flex min-w-0 flex-col justify-center gap-3 bg-slate-50 p-4 lg:p-6 [&>div]:rounded-xl">
           {item.fotos.length ? (
             [...item.fotos]
               .sort((a, b) => a.ordem - b.ordem)
@@ -134,7 +137,7 @@ export default async function DetalhesDoacao({
             <FeedPhoto titulo={item.titulo} />
           )}
         </div>
-        <div className="space-y-5 p-5 sm:p-8">
+        <div className="min-w-0 space-y-4 p-5 sm:p-6">
           <div>
             <p className="text-sm font-semibold text-blue-700">
               {item.categoria_id?.nome || "Doação"}
@@ -225,6 +228,6 @@ export default async function DetalhesDoacao({
           )}
         </div>
       </article>
-    </main>
+    </div>
   );
 }

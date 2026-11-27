@@ -48,7 +48,7 @@ export async function listarCategoriasFeed() {
   }
 }
 
-export function fotoFeed(item: ItemFeed): string | undefined {
+export function fotoFeed(item: Partial<Pick<ItemFeed, "fotos">>): string | undefined {
   const path = item.fotos?.[0]?.url;
   const api = process.env.NEXT_PUBLIC_API_URL;
   if (!path || !api) return undefined;
