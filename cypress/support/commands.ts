@@ -2,6 +2,7 @@
 import { tokenAdmin } from "./api";
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Cypress {
     interface Chainable {
       /** Usa a sessão de um token da API (o cookie que o front lê). */
