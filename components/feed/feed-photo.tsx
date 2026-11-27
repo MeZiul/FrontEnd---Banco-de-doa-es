@@ -3,15 +3,16 @@ import Image from "next/image";
 import { useState } from "react";
 import { ImageOff } from "lucide-react";
 
-export function FeedPhoto({ src, titulo }: { src?: string; titulo: string }) {
+export function FeedPhoto({ src, titulo, compacto = false }: { src?: string; titulo: string; compacto?: boolean; }) {
   const [failedSrc, setFailedSrc] = useState<string>();
   return (
     <div className="relative aspect-[4/3] overflow-hidden bg-muted">
       {src && failedSrc !== src ? (
         <Image src={src} alt={titulo} fill unoptimized sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover" onError={() => setFailedSrc(src)} />
       ) : (
-        <div className="flex h-full flex-col items-center justify-center gap-2 text-foreground">
-          <ImageOff className="size-8" aria-hidden="true" /><span className="text-sm">Foto indisponível</span>
+        <div className="flex h-full flex-col items-center justify-center gap-1 p-2 text-center text-muted-foreground">
+          <ImageOff className={compacto ? "size-6" : "size-8"} aria-hidden="true" />
+          <span className={compacto ? "text-xs" : "text-sm"}>Foto indisponível</span>
         </div>
       )}
     </div>
