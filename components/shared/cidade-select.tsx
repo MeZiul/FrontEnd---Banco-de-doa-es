@@ -3,12 +3,15 @@
 import { Combobox } from "@base-ui/react/combobox";
 import { useQuery } from "@tanstack/react-query";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
+import { preconnect } from "react-dom";
 import { Input } from "@/components/ui/input";
+
+const IBGE = "https://servicodados.ibge.gov.br";
 
 // Busca os municípios da UF na API pública do IBGE (já vem em ordem alfabética).
 // Se o IBGE demorar mais de 8s, a busca é tratada como falha.
 async function buscarCidades(uf: string): Promise<string[]> {
-  const resposta = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios?orderBy=nome`, {
+  const resposta = await fetch(`${IBGE}/api/v1/localidades/estados/${uf}/municipios?orderBy=nome`, {
     signal: AbortSignal.timeout(8000),
   });
   if (!resposta.ok) throw new Error("Não foi possível carregar as cidades.");
@@ -33,6 +36,8 @@ type Props = {
 
 // Select de cidade com busca: mostra as cidades da UF escolhida.
 export function CidadeSelect({ id, uf, value, onValueChange, dataTest }: Props) {
+  preconnect(IBGE, { crossOrigin: "anonymous" });
+
   const { data: cidades = [], isPending, isError } = useQuery({
     queryKey: ["cidades", uf],
     queryFn: () => buscarCidades(uf),

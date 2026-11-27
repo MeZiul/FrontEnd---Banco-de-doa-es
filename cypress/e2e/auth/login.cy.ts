@@ -1,4 +1,4 @@
-import { API_LOCAL, criarContaSintetica } from "../support/conta-sintetica";
+import { API_LOCAL, criarContaSintetica } from "../../support/conta-sintetica";
 
 describe("Login", () => {
   beforeEach(() => {
