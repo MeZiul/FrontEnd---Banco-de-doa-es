@@ -20,7 +20,7 @@ type ItemRecebimento = {
   interesse_aceito_id?: Referencia;
 };
 
-class ErroFormulario extends Error {}
+class ErroFormulario extends Error { }
 
 function referenciaId(referencia: Referencia) {
   return typeof referencia === "string" ? referencia : referencia?._id ?? null;
@@ -109,5 +109,37 @@ export async function confirmarRecebimento(
     return { sucesso: true, mensagem: "Recebimento confirmado. A doação foi concluída." };
   } catch (erro) {
     return falha(erro);
+  }
+}
+
+export async function cancelarSolicitacao(interesseId: string): Promise<{ sucesso: boolean; mensagem: string }> {
+  try {
+    if (typeof interesseId !== "string" || !ID_DOACAO.test(interesseId)) {
+      throw new ErroFormulario("Solicitação inválida.");
+    }
+
+    await fetchApiAutenticado(`interesses/${encodeURIComponent(interesseId)}`, {
+      metodo: "DELETE",
+      signal: AbortSignal.timeout(15000)
+    }
+    );
+
+    revalidatePath("/perfil/minhas-solicitacoes");
+    revalidatePath("/perfil/meus-anuncios");
+
+    return { sucesso: true, mensagem: "Solicitação cancelada com sucesso." };
+  } catch (erro) {
+    unstable_rethrow(erro);
+
+    return {
+      sucesso: false,
+      mensagem:
+        erro instanceof ErroApi ||
+          erro instanceof ErroFormulario
+          ? erro.message
+          : ehTimeout(erro)
+            ? "Não foi possível confirmar o cancelamento. Atualize a página antes de tentar novamente."
+            : "Não foi possível cancelar a solicitação. Tente novamente."
+    };
   }
 }

@@ -8,6 +8,7 @@ import { PaginacaoLinks } from "@/components/shared/paginacao-links";
 import type { Paginado } from "@/types/api";
 import type { Solicitacao, StatusSolicitacao } from "@/types/solicitacao";
 import { ContatoWhatsApp } from "@/components/perfil/contato-whatsapp";
+import { CancelarSolicitacaoForm } from "@/components/perfil/cancelar-solicitacao-form";
 
 const ITENS_POR_PAGINA = 5;
 
@@ -135,7 +136,7 @@ export default async function MinhasSolicitacoes({ searchParams }: { searchParam
                       <span className="font-medium text-gray-700">Resposta do doador:</span> {solicitacao.resposta_doador}
                     </p>
                   )}
-                  
+
                   {solicitacao.status === "ACEITO" && (
                     <ContatoWhatsApp
                       telefone={solicitacao.usuario_doador_id.telefone}
@@ -149,6 +150,13 @@ export default async function MinhasSolicitacoes({ searchParams }: { searchParam
                       <StatusIcon className="h-3.5 w-3.5" />
                       {StatusData.label}
                     </span>
+
+                    {/* Cancelamento de solicitação pendente */}
+                    {solicitacao.status === "PENDENTE" && (
+                      <CancelarSolicitacaoForm
+                        interesseId={solicitacao._id}
+                      />
+                    )}
 
                     {solicitacao.status === "ACEITO" && solicitacao.item_id.status === "AGUARDANDO_CONFIRMACAO" && (
                       <div className="w-full space-y-2 rounded-xl bg-amber-50 p-4 text-sm text-amber-950">

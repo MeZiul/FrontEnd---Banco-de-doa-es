@@ -92,13 +92,20 @@ function carregar({ usuario = { _id: usuarioId, perfil: 'USUARIO', situacao: 'AT
         fetchApiAutenticado: async (path, options) => {
           chamadas.push({ path, options });
           if (erro) throw erro;
-          return resposta;
-        },
+          if (path === 'interesses') return resposta;
+          if (path.startsWith('interesses/')) {
+            const id = path.split('/')[1];
+            const solicitacao = resposta.docs.find((doc) => doc._id === id);
+            if (solicitacao) return solicitacao;
+          }
+          throw new Error('Endpoint inesperado: ' + path);
+        }
       };
       if (nome === '@/components/shared/paginacao-links') return { PaginacaoLinks };
       if (nome === '@/components/perfil/confirmar-recebimento-form') return { ConfirmarRecebimentoForm: function ConfirmarRecebimentoForm() { } };
       if (nome === '@/components/feed/feed-retry') return { FeedRetry: function FeedRetry() { } };
-      if (nome === '@/components/perfil/contato-whatsapp') { return { ContatoWhatsapp: () => null } }
+      if (nome === '@/components/perfil/contato-whatsapp') return { ContatoWhatsapp: () => null }
+      if (nome === '@/components/perfil/cancelar-solicitacao-form') return { CancelarSolicitacaoForm: function CancelarSolicitacaoForm() { } }
       throw new Error('Import inesperado: ' + nome);
     },
   };
@@ -174,3 +181,46 @@ test('redireciona página além da última página disponível', async () => {
   await assert.rejects(() => app.render('10'), (erro) => erro.redirectTo === '/perfil/minhas-solicitacoes?page=3');
 });
 
+
+test('exibe cancelamento para solicitação pendente com o identificador correto', async () => {
+  const resposta = paginado();
+
+  const app = carregar({ resposta });
+
+  const tree = await app.render('2');
+
+  const formularios = elementos(tree, (value) =>
+    typeof value.type === 'function' &&
+    value.type.name === 'CancelarSolicitacaoForm'
+  );
+
+  assert.equal(formularios.length, 1);
+
+  assert.equal(formularios[0].props.interesseId, resposta.docs[0]._id);
+});
+
+test('não exibe cancelamento para solicitações que não estão pendentes', async () => {
+  const statusNaoPermitidos = [
+    'ACEITO',
+    'RECUSADO',
+    'CANCELADO',
+    'EXPIRADO'
+  ];
+
+  for (const status of statusNaoPermitidos) {
+    const resposta = paginado();
+
+    resposta.docs[0].status = status;
+
+    const app = carregar({ resposta });
+
+    const tree = await app.render('2');
+
+    const formularios = elementos(tree, (value) =>
+      typeof value.type === 'function' &&
+      value.type.name === 'CancelarSolicitacaoForm'
+    );
+
+    assert.equal(formularios.length, 0, `Não deveria exibir cancelamento para o status ${status}`);
+  }
+});
